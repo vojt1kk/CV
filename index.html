@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vojtěch Kocourek — Backend Developer</title>
+  <meta name="description" content="Portfolio Vojtěcha Kocourka — backend developer specializující se na PHP/Laravel a C#/.NET" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===== NAVBAR ===== -->
+  <header class="navbar" id="navbar">
+    <div class="container navbar__inner">
+      <a class="navbar__brand" href="#hero">VK</a>
+
+      <nav class="navbar__nav" id="main-nav">
+        <a href="#about"    data-i18n="nav.about">O mně</a>
+        <a href="#skills"   data-i18n="nav.skills">Dovednosti</a>
+        <a href="#projects" data-i18n="nav.projects">Projekty</a>
+        <a href="#contact"  data-i18n="nav.contact">Kontakt</a>
+      </nav>
+
+      <div class="navbar__actions">
+        <button class="lang-btn" id="lang-toggle" aria-label="Switch language">EN</button>
+      </div>
+
+      <button class="navbar__hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== HERO ===== -->
+  <section class="hero" id="hero">
+    <div class="hero__center">
+      <h1 class="hero__name">
+        <span class="hero__name-first">Vojtěch</span>
+        <span class="hero__name-last">Kocourek</span>
+      </h1>
+      <span class="hero__sep" aria-hidden="true">·</span>
+      <p class="hero__role" data-i18n="hero.role">Backend Developer</p>
+    </div>
+    <div class="hero__scroll" aria-hidden="true">
+      <span class="hero__scroll-line"></span>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ===== ABOUT ===== -->
+  <section class="about reveal" id="about">
+    <div class="container">
+
+      <div class="section-head">
+        <span class="eyebrow" data-i18n="nav.about">O mně</span>
+        <h2 class="section-title" data-i18n="about.heading">
+          Kód, který obstojí v čase.
+        </h2>
+      </div>
+
+      <div class="about__split">
+        <div class="about__bio">
+          <p class="about__bio-lead" data-i18n="about.p1">
+            Jsem backend developer se zaměřením na PHP/Laravel a C#/.NET. Rád navrhuju
+            čistá API, pracuju s relačními databázemi a automatizuju rutinní úkoly
+            pomocí moderních AI nástrojů.
+          </p>
+          <p data-i18n="about.p2">
+            Ve volném čase prozkoumávám nové frameworky, přispívám do open-source projektů
+            a zdokonaluji své pracovní postupy s nástroji jako Cursor a Claude Code.
+          </p>
+          <p data-i18n="about.p3">
+            Věřím v psaní kódu, který je snadno čitelný, testovatelný a udržovatelný —
+            nejen kódu, který funguje.
+          </p>
+        </div>
+
+        <aside class="about__info">
+          <div class="about__info-block">
+            <p class="about__info-label" data-i18n="about.key-name">Jméno</p>
+            <p class="about__info-value">Vojtěch Kocourek</p>
+          </div>
+          <div class="about__info-block">
+            <p class="about__info-label" data-i18n="about.key-role">Role</p>
+            <p class="about__info-value" data-i18n="about.val-role">Junior Backend Developer</p>
+          </div>
+          <div class="about__info-block">
+            <p class="about__info-label" data-i18n="about.key-focus">Zaměření</p>
+            <div class="about__info-tags">
+              <span class="tag">PHP</span>
+              <span class="tag">Laravel</span>
+              <span class="tag">C#</span>
+              <span class="tag">.NET</span>
+            </div>
+          </div>
+          <div class="about__info-block">
+            <p class="about__info-label" data-i18n="about.key-location">Lokace</p>
+            <p class="about__info-value">Praha, CZ</p>
+          </div>
+          <div class="about__info-block">
+            <p class="about__info-label" data-i18n="about.key-status">Status</p>
+            <p class="about__info-value" data-i18n="about.val-status">Dostupný</p>
+          </div>
+        </aside>
+      </div>
+
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ===== SKILLS ===== -->
+  <section class="skills reveal" id="skills">
+    <div class="container">
+
+      <div class="section-head">
+        <span class="eyebrow" data-i18n="nav.skills">Dovednosti</span>
+        <h2 class="section-title" data-i18n="skills.heading">
+          Stack &amp; technologie.
+        </h2>
+      </div>
+
+      <div class="skills__canvas-wrap" id="skills-container">
+        <canvas class="skill-canvas" id="skill-canvas" aria-label="Interaktivní skill tree"></canvas>
+        <div class="skill-tooltip" id="skill-tooltip" role="tooltip" aria-live="polite">
+          <div class="skill-tooltip__name"  id="tooltip-name"></div>
+          <div class="skill-tooltip__group" id="tooltip-group"></div>
+          <div class="skill-tooltip__desc"  id="tooltip-desc"></div>
+        </div>
+      </div>
+
+      <p class="skills__hint" id="skills-hint" data-i18n="skills.hint">
+        Klikni na uzel pro více informací
+      </p>
+
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ===== PROJECTS ===== -->
+  <section class="projects reveal" id="projects">
+    <div class="container">
+
+      <div class="section-head">
+        <span class="eyebrow" data-i18n="nav.projects">Projekty</span>
+        <h2 class="section-title" data-i18n="projects.heading">
+          Vybrané práce.
+        </h2>
+      </div>
+
+      <div class="projects__grid">
+
+        <article class="project-card">
+          <p class="project-card__num">01</p>
+          <h3 class="project-card__title" data-i18n="projects.p1-title">Laravel REST API</h3>
+          <p class="project-card__desc" data-i18n="projects.p1-desc">
+            RESTful API postavené na Laravel s Eloquent ORM, autentizací přes Sanctum
+            a automatickými testy pomocí PHPUnit.
+          </p>
+          <div class="project-card__footer">
+            <div class="project-card__tags">
+              <span class="tag">Laravel</span>
+              <span class="tag">PHP</span>
+              <span class="tag">MySQL</span>
+            </div>
+            <div class="project-card__links">
+              <a href="#" class="project-card__link" data-i18n="projects.link-code">Kód ↗</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="project-card">
+          <p class="project-card__num">02</p>
+          <h3 class="project-card__title" data-i18n="projects.p2-title">Laravel CMS</h3>
+          <p class="project-card__desc" data-i18n="projects.p2-desc">
+            Redakční systém s Blade šablonami, administračním panelem
+            a správou médií pomocí Laravel Filesystems.
+          </p>
+          <div class="project-card__footer">
+            <div class="project-card__tags">
+              <span class="tag">Laravel</span>
+              <span class="tag">Blade</span>
+              <span class="tag">PostgreSQL</span>
+            </div>
+            <div class="project-card__links">
+              <a href="#" class="project-card__link" data-i18n="projects.link-code">Kód ↗</a>
+            </div>
+          </div>
+        </article>
+
+        <article class="project-card">
+          <p class="project-card__num">03</p>
+          <h3 class="project-card__title" data-i18n="projects.p3-title">.NET Web API</h3>
+          <p class="project-card__desc" data-i18n="projects.p3-desc">
+            ASP.NET Core Web API s Entity Framework Core, JWT autentizací
+            a Swagger dokumentací.
+          </p>
+          <div class="project-card__footer">
+            <div class="project-card__tags">
+              <span class="tag">.NET</span>
+              <span class="tag">C#</span>
+              <span class="tag">REST</span>
+            </div>
+            <div class="project-card__links">
+              <a href="#" class="project-card__link" data-i18n="projects.link-code">Kód ↗</a>
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider" />
+
+  <!-- ===== CONTACT ===== -->
+  <section class="contact reveal" id="contact">
+    <div class="container">
+
+      <div class="contact__layout">
+        <div>
+          <span class="eyebrow" data-i18n="nav.contact">Kontakt</span>
+          <h2 class="contact__heading" data-i18n="contact.heading">
+            Pojďme<br>spolupracovat.
+          </h2>
+          <p class="contact__sub" data-i18n="contact.sub">
+            Hledáš backend developera nebo chceš spolupracovat
+            na projektu? Napiš mi.
+          </p>
+        </div>
+
+        <nav class="contact__links" aria-label="Kontaktní linky">
+
+          <a href="https://github.com/" target="_blank" rel="noopener" class="contact-link">
+            <span class="contact-link__label">
+              <span class="contact-link__icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.2 11.38.6.11.82-.26.82-.58l-.01-2.04c-3.34.72-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.66-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.13-.3-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23A11.5 11.5 0 0112 5.8c1.02 0 2.04.14 3 .4 2.28-1.55 3.29-1.23 3.29-1.23.66 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22l-.01 3.29c0 .32.21.7.82.58C20.57 21.8 24 17.3 24 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+              </span>
+              GitHub
+            </span>
+            <span class="contact-link__arrow">↗</span>
+          </a>
+
+          <a href="https://linkedin.com/" target="_blank" rel="noopener" class="contact-link">
+            <span class="contact-link__label">
+              <span class="contact-link__icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M20.45 20.45h-3.55v-5.57c0-1.33-.03-3.04-1.85-3.04-1.85 0-2.13 1.45-2.13 2.94v5.67H9.37V9h3.41v1.56h.05c.47-.9 1.63-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.78C.8 0 0 .78 0 1.73v20.54C0 23.2.8 24 1.78 24h20.44c.98 0 1.78-.8 1.78-1.73V1.73C24 .78 23.2 0 22.22 0z"/>
+                </svg>
+              </span>
+              LinkedIn
+            </span>
+            <span class="contact-link__arrow">↗</span>
+          </a>
+
+          <a href="mailto:vojtech@example.com" class="contact-link">
+            <span class="contact-link__label">
+              <span class="contact-link__icon">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/>
+                  <path d="M22 7L12 13 2 7"/>
+                </svg>
+              </span>
+              vojtech@example.com
+            </span>
+            <span class="contact-link__arrow">↗</span>
+          </a>
+
+        </nav>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <span>Vojtěch Kocourek</span>
+      <span data-i18n="footer.copy">© 2025</span>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
