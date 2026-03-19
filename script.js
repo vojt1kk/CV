@@ -135,7 +135,7 @@ function t(key) {
   return (translations[currentLang] || {})[key] || (translations.cs || {})[key] || key;
 }
 
-function setLanguage(lang) {
+function setLanguage(lang, roleDelay = 0) {
   currentLang = lang;
   localStorage.setItem('lang', lang);
   document.documentElement.lang = lang;
@@ -154,25 +154,36 @@ function setLanguage(lang) {
   updateHint();
   if (typeof updateNodeLabels === 'function') updateNodeLabels();
   if (typeof activeDept !== 'undefined' && activeDept !== null) showExp(activeDept);
-  splitRoleChars();
+  typeRole(t('hero.role'), roleDelay);
 }
 
-function splitRoleChars() {
+let typeRoleTimer = null;
+
+function typeRole(text, delay) {
+  if (typeRoleTimer !== null) { clearTimeout(typeRoleTimer); typeRoleTimer = null; }
+
   const el = document.querySelector('.hero__role');
   if (!el) return;
-  const text = el.textContent;
   el.textContent = '';
-  [...text].forEach((ch, i) => {
-    if (ch === ' ') {
-      el.appendChild(document.createTextNode('\u00a0'));
-      return;
-    }
-    const span = document.createElement('span');
-    span.className = 'hero__role-char';
-    span.style.setProperty('--i', i);
-    span.textContent = ch;
-    el.appendChild(span);
-  });
+
+  const prompt = document.createElement('span');
+  prompt.className = 'hero__role-prompt';
+  prompt.textContent = '/';
+  el.appendChild(prompt);
+
+  const cursor = document.createElement('span');
+  cursor.className = 'hero__role-cursor';
+  el.appendChild(cursor);
+
+  let i = 0;
+  function typeNext() {
+    if (i >= text.length) return;
+    el.insertBefore(document.createTextNode(text[i]), cursor);
+    i++;
+    typeRoleTimer = setTimeout(typeNext, 55 + Math.random() * 35);
+  }
+
+  typeRoleTimer = setTimeout(typeNext, delay);
 }
 
 /* ============================================================
@@ -784,10 +795,128 @@ window.addEventListener('resize', () => {
 }, { passive: true });
 
 /* ============================================================
+   Hero — Terminal Window
+   ============================================================ */
+const TERM_SEQUENCES = [
+  {
+    commands: [
+      { prompt: '~', cmd: 'whoami', output: [
+        'name:     Vojtěch Kocourek',
+        'role:     Junior Backend Dev',
+        'location: Prague, CZ',
+      ]},
+    ],
+  },
+  {
+    commands: [
+      { prompt: '~', cmd: 'ping status', output: [
+        'PING status...',
+        'available:    true',
+        'open to work: yes',
+      ]},
+    ],
+  },
+  {
+    commands: [
+      { prompt: '~',         cmd: 'cd /projects', output: [] },
+      { prompt: '/projects', cmd: 'ls',           output: [
+        'Laravel REST API/',
+        'Laravel CMS/',
+        '.NET Web API/',
+      ]},
+    ],
+  },
+  {
+    commands: [
+      { prompt: '~', cmd: 'cat skills.txt', output: [
+        'PHP · Laravel · Eloquent',
+        'C# · ASP.NET · EF Core',
+        'Git · Docker · Claude',
+      ]},
+    ],
+  },
+];
+
+function typeTermCmd(line, text, speed, cb) {
+  let i = 0;
+  function next() {
+    if (i >= text.length) { cb && cb(); return; }
+    line.textContent += text[i++];
+    setTimeout(next, speed + Math.random() * 20);
+  }
+  next();
+}
+
+function runSequence(seq, cb) {
+  const body = document.getElementById('term-body');
+  if (!body) return;
+
+  const cursor = document.createElement('span');
+  cursor.className = 'term__cursor';
+
+  let cmdIndex = 0;
+
+  function nextCmd() {
+    if (cmdIndex >= seq.commands.length) { cb && cb(); return; }
+    const cmd = seq.commands[cmdIndex++];
+
+    const line = document.createElement('div');
+    line.className = 'term__line';
+
+    const promptSpan = document.createElement('span');
+    promptSpan.className = 'term__prompt';
+    promptSpan.textContent = cmd.prompt + ' $ ';
+    line.appendChild(promptSpan);
+
+    const cmdSpan = document.createElement('span');
+    cmdSpan.className = 'term__cmd';
+    line.appendChild(cmdSpan);
+    line.appendChild(cursor);
+    body.appendChild(line);
+
+    typeTermCmd(cmdSpan, cmd.cmd, 60, () => {
+      line.removeChild(cursor);
+
+      let outIdx = 0;
+      function nextOut() {
+        if (outIdx >= cmd.output.length) { nextCmd(); return; }
+        const outLine = document.createElement('div');
+        outLine.className = 'term__line term__output';
+        outLine.textContent = cmd.output[outIdx++];
+        body.appendChild(outLine);
+        setTimeout(nextOut, 150);
+      }
+      setTimeout(nextOut, 80);
+    });
+  }
+
+  nextCmd();
+}
+
+let _termSeqIndex = 0;
+
+function termLoop() {
+  const body = document.getElementById('term-body');
+  if (!body) return;
+
+  const seq = TERM_SEQUENCES[_termSeqIndex];
+  _termSeqIndex = (_termSeqIndex + 1) % TERM_SEQUENCES.length;
+
+  runSequence(seq, () => {
+    setTimeout(() => {
+      body.innerHTML = '';
+      termLoop();
+    }, 1800);
+  });
+}
+
+setTimeout(termLoop, 2200);
+
+/* ============================================================
    Init
    ============================================================ */
 function init() {
-  setLanguage(currentLang);
+  setLanguage(currentLang, 1350);
   resizeStarsCanvas();
   positionNodes();
   updateNodeLabels();

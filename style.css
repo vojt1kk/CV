@@ -1,7 +1,7 @@
 /* ============================================================
    Import
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@300;400&display=swap');
 
 /* ============================================================
    CSS Variables
@@ -252,7 +252,7 @@ img { max-width: 100%; display: block; }
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
+  text-align: left;
   overflow: hidden;
 }
 
@@ -267,21 +267,32 @@ img { max-width: 100%; display: block; }
   pointer-events: none;
 }
 
+.hero__layout {
+  display: flex;
+  align-items: stretch;
+  gap: 2.5rem;
+  max-width: 1340px;
+  width: 100%;
+  padding: 0 3rem;
+}
+
 .hero__center {
+  flex: 1;
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
+  justify-content: center;
 }
 
 .hero__name {
   display: flex;
   flex-direction: column;
-  font-size: clamp(3.2rem, 8vw, 6.5rem);
+  font-size: clamp(3.2rem, 6.5vw, 6.5rem);
   font-weight: 300;
   line-height: 1.0;
   letter-spacing: -0.03em;
-  margin-bottom: 1.75rem;
+  margin-bottom: 0.9rem;
 }
 
 @keyframes heroNameGlow {
@@ -308,27 +319,40 @@ img { max-width: 100%; display: block; }
   display: block;
   font-size: 1.1rem;
   color: var(--fg-4);
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.8rem;
   animation: fadeUp 0.8s 0.36s both, sepBreath 3.8s 1.4s ease-in-out infinite;
 }
 
 .hero__role {
-  font-size: 0.78rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--fg-3);
+  font-family: 'JetBrains Mono', var(--font-mono);
+  font-size: 1rem;
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  color: var(--fg-2);
   animation: fadeUp 0.8s 0.48s both;
 }
 
-.hero__role-char {
-  display: inline-block;
-  animation: charWeight 3s ease-in-out infinite;
-  animation-delay: calc(var(--i) * -0.18s);
+.hero__role-prompt {
+  color: var(--fg-4);
+  margin-right: 0.55em;
+  font-weight: 300;
+  user-select: none;
 }
 
-@keyframes charWeight {
-  0%, 100% { font-variation-settings: 'wght' 300; color: var(--fg-3); }
-  50%       { font-variation-settings: 'wght' 600; color: var(--fg-2); }
+.hero__role-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.9em;
+  background: var(--fg-2);
+  vertical-align: middle;
+  margin-left: 2px;
+  margin-bottom: 1px;
+  animation: cursorBlink 1.1s step-end infinite;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
 }
 
 .hero__scroll {
@@ -355,6 +379,69 @@ img { max-width: 100%; display: block; }
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(18px); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   Hero — Terminal Window
+   ============================================================ */
+.hero__terminal {
+  flex: 0 0 600px;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', var(--font-mono);
+  font-size: 0.72rem;
+  opacity: 0;
+  animation: fadeUp 0.8s 1.6s both;
+}
+
+.term__titlebar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.term__buttons { display: flex; gap: 6px; }
+
+.term__btn {
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: #555;
+}
+
+.term__title {
+  flex: 1;
+  text-align: center;
+  font-size: 0.65rem;
+  color: var(--fg-3);
+  letter-spacing: 0.1em;
+}
+
+.term__body {
+  padding: 0.9rem 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.term__line { color: var(--fg-3); line-height: 1.6; }
+.term__prompt { color: var(--fg-4); }
+.term__cmd { color: var(--fg-2); }
+.term__output { color: var(--fg-3); padding-left: 1em; }
+.term__cursor {
+  display: inline-block;
+  width: 0.5em; height: 0.85em;
+  background: var(--fg-3);
+  vertical-align: middle;
+  margin-left: 1px;
+  animation: cursorBlink 1.1s step-end infinite;
 }
 
 /* ============================================================
@@ -990,20 +1077,6 @@ img { max-width: 100%; display: block; }
    Responsive
    ============================================================ */
 @media (max-width: 860px) {
-  .hero__layout {
-    grid-template-columns: 1fr;
-    gap: 3rem;
-  }
-
-  .hero__right {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 2rem;
-    padding-top: 0;
-    border-top: 1px solid var(--border);
-    padding-top: 2rem;
-  }
-
   .about__grid {
     grid-template-columns: 1fr;
     gap: 2.5rem;
@@ -1017,6 +1090,13 @@ img { max-width: 100%; display: block; }
     grid-template-columns: 1fr;
     gap: 2.5rem;
   }
+}
+
+@media (max-width: 768px) {
+  .hero__layout { flex-direction: column; align-items: flex-start; gap: 2rem; }
+  .hero__terminal { display: none; }
+  .hero { text-align: center; }
+  .hero__center { align-items: center; }
 }
 
 @media (max-width: 640px) {
