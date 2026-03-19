@@ -115,36 +115,47 @@
   <!-- ===== SKILLS ===== -->
   <section class="skills reveal" id="skills">
     <div class="container">
-
       <div class="section-head">
         <span class="eyebrow" data-i18n="nav.skills">Dovednosti</span>
         <h2 class="section-title" data-i18n="skills.heading">
           Stack &amp; technologie.
         </h2>
       </div>
-
-      <div class="skills__split" id="skills-split">
-        <div class="skills__canvas-wrap" id="skills-container">
-          <canvas class="skill-canvas" id="skill-canvas" aria-label="Interaktivní skill tree"></canvas>
-        </div>
-
-        <div class="skills__exp" id="skills-exp" aria-live="polite">
-          <div class="skills__exp-header">
-            <button class="skills__exp-back" id="skills-back">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 10L4 6l4-4"/></svg>
-              <span data-i18n="skills.back">Přehled</span>
-            </button>
-            <span class="skills__exp-dept" id="skills-exp-title"></span>
-          </div>
-          <p class="skills__exp-text" id="skills-exp-text"></p>
-        </div>
-      </div><!-- /.skills__split -->
-
-      <p class="skills__hint" id="skills-hint" data-i18n="skills.hint">
-        Klikni na oblast pro detail
-      </p>
-
     </div>
+
+    <div class="skills__split" id="skills-split">
+      <div class="skills__canvas-wrap" id="skills-container">
+        <canvas id="stars-canvas" aria-hidden="true"></canvas>
+        <div class="scene" id="skill-scene">
+          <div class="orbit-ring" id="orbit-ring"></div>
+          <div class="skill-node" data-dept="laravel" tabindex="0" role="button" aria-label="PHP / Laravel">
+            <span class="skill-node__label"></span>
+          </div>
+          <div class="skill-node" data-dept="dotnet" tabindex="0" role="button" aria-label="C# / .NET">
+            <span class="skill-node__label"></span>
+          </div>
+          <div class="skill-node" data-dept="tooling" tabindex="0" role="button" aria-label="Tooling">
+            <span class="skill-node__label"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="skills__exp" id="skills-exp" aria-live="polite">
+        <div class="skills__exp-header">
+          <button class="skills__exp-back" id="skills-back">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 10L4 6l4-4"/></svg>
+            <span data-i18n="skills.back">Přehled</span>
+          </button>
+          <span class="skills__exp-dept" id="skills-exp-title"></span>
+        </div>
+        <p class="skills__exp-text" id="skills-exp-text"></p>
+      </div>
+    </div><!-- /.skills__split -->
+
+    <p class="skills__hint" id="skills-hint" data-i18n="skills.hint">
+      Klikni na oblast pro detail
+    </p>
+
   </section>
 
   <hr class="divider" />

@@ -152,6 +152,7 @@ function setLanguage(lang) {
   });
 
   updateHint();
+  if (typeof updateNodeLabels === 'function') updateNodeLabels();
   if (typeof activeDept !== 'undefined' && activeDept !== null) showExp(activeDept);
 }
 
@@ -290,46 +291,40 @@ const EXPERIENCE = {
 };
 
 /* ============================================================
-   Canvas & State
+   DOM Skill Tree — State & Refs
    ============================================================ */
-const canvas    = document.getElementById('skill-canvas');
-const ctx       = canvas.getContext('2d');
 const skillWrap = document.getElementById('skills-container');
 const expPanel  = document.getElementById('skills-exp');
 const expTitle  = document.getElementById('skills-exp-title');
 const expText   = document.getElementById('skills-exp-text');
 const backBtn   = document.getElementById('skills-back');
+const scene     = document.getElementById('skill-scene');
+const orbitRing = document.getElementById('orbit-ring');
+const starsCanvas = document.getElementById('stars-canvas');
+const starsCtx  = starsCanvas.getContext('2d');
 
-let canvasW = 0, canvasH = 0, dpr = 1, isMobile = false;
-let camera = { scale: 1, tScale: 1 };
-
-// Stars
-let stars = [];
-
-// Tree state
+let isMobile   = false;
 let treeState  = 'overview'; // 'overview' | 'detail'
 let activeDept = null;
 
-// Scene nodes
-let sceneNodes = [];
-let hoveredId  = null;
+// Node position offsets from scene center (for zoom math)
+let nodePositions = {}; // { deptId: { nx, ny } }
 
-// Ring
-let _ringR = 0, _ringCx = 0, _ringCy = 0;
-
-// RAF
+// Stars
+let stars = [];
+let starsW = 0, starsH = 0;
 let rafId = null, lastFrame = 0;
 
 /* ============================================================
-   Canvas Setup
+   Stars Canvas
    ============================================================ */
 function generateStars() {
-  const count = Math.floor((canvasW * canvasH) / 2500);
+  const count = Math.floor((starsW * starsH) / 2500);
   stars = [];
   for (let i = 0; i < count; i++) {
     stars.push({
-      x:     Math.random() * canvasW,
-      y:     Math.random() * canvasH,
+      x:     Math.random() * starsW,
+      y:     Math.random() * starsH,
       r:     Math.random() * 1.2 + 0.2,
       alpha: Math.random() * 0.55 + 0.1,
       vx:    (Math.random() - 0.5) * 0.010,
@@ -338,214 +333,118 @@ function generateStars() {
   }
 }
 
-/* ============================================================
-   Scene — Build & Layout
-   ============================================================ */
-function buildSceneNodes() {
-  sceneNodes = [];
-  DEPTS.forEach(d => {
-    sceneNodes.push({
-      uid: 'dept_' + d.id, kind: 'dept', deptId: d.id,
-      label: d.label, angle: d.angle,
-      ax: 0, ay: 0, alpha: 0, scale: 1,
-      tx: 0, ty: 0, tAlpha: 0, tScale: 1,
-      r: 38,
-      breathPhase: Math.random() * Math.PI * 2,
-    });
+function resizeStarsCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  starsW = skillWrap.clientWidth;
+  isMobile = starsW < 600;
+  starsH = isMobile
+    ? Math.round(window.innerHeight * 0.72)
+    : Math.round(window.innerHeight * 0.76);
+  starsH = Math.max(starsH, isMobile ? 500 : 640);
+
+  starsCanvas.width        = starsW * dpr;
+  starsCanvas.height       = starsH * dpr;
+  starsCanvas.style.width  = starsW + 'px';
+  starsCanvas.style.height = starsH + 'px';
+  starsCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  skillWrap.style.height = starsH + 'px';
+  generateStars();
+}
+
+function drawStars() {
+  starsCtx.clearRect(0, 0, starsW, starsH);
+  const cx = starsW / 2, cy = starsH / 2;
+  const maxDist = Math.hypot(cx, cy);
+  starsCtx.fillStyle = '#ffffff';
+  stars.forEach(s => {
+    const dist   = Math.hypot(s.x - cx, s.y - cy);
+    const radial = 1 - (dist / maxDist) * 0.72;
+    starsCtx.save();
+    starsCtx.globalAlpha = s.alpha * radial;
+    starsCtx.beginPath();
+    starsCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    starsCtx.fill();
+    starsCtx.restore();
   });
 }
 
+function animateStars(ts) {
+  const dt = Math.min(ts - lastFrame, 50);
+  lastFrame = ts;
+  stars.forEach(s => {
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    if (s.x < 0)      s.x += starsW;
+    if (s.x > starsW) s.x -= starsW;
+    if (s.y < 0)      s.y += starsH;
+    if (s.y > starsH) s.y -= starsH;
+  });
+  drawStars();
+  rafId = requestAnimationFrame(animateStars);
+}
+
+/* ============================================================
+   Node Positioning
+   ============================================================ */
 function polar(cx, cy, r, angleDeg) {
   const rad = (angleDeg - 90) * Math.PI / 180;
   return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function setOverviewTargets() {
-  const cx = canvasW / 2, cy = canvasH / 2;
-  const R  = Math.min(canvasH, canvasW) * (isMobile ? 0.33 : 0.38);
-  _ringCx = cx; _ringCy = cy; _ringR = R;
-  sceneNodes.forEach(n => {
-    const pos = polar(cx, cy, R, n.angle);
-    n.tx = pos.x; n.ty = pos.y; n.tAlpha = 1; n.tScale = 1;
-  });
-}
+function positionNodes() {
+  const w  = skillWrap.clientWidth;
+  const h  = starsH;
+  const cx = w / 2;
+  const cy = h / 2;
+  const R  = Math.min(h, w) * (isMobile ? 0.32 : 0.38);
 
-function setDetailTargets(deptId) {
-  const cx = canvasW / 2, cy = canvasH / 2;
-  const R  = Math.min(canvasH, canvasW) * (isMobile ? 0.33 : 0.38);
-  _ringCx = cx; _ringCy = cy; _ringR = R;
-  sceneNodes.forEach(n => {
-    if (n.deptId === deptId) {
-      n.tx = cx; n.ty = cy; n.tAlpha = 1; n.tScale = 1.1;
-    } else {
-      const pos = polar(cx, cy, R, n.angle);
-      n.tx = pos.x; n.ty = pos.y; n.tAlpha = 0.25; n.tScale = 1;
-    }
+  // Size orbit ring
+  orbitRing.style.width  = R * 2 + 'px';
+  orbitRing.style.height = R * 2 + 'px';
+
+  // Position each node
+  nodePositions = {};
+  const nodeEls = scene.querySelectorAll('.skill-node');
+  nodeEls.forEach(el => {
+    const deptId = el.dataset.dept;
+    const dept   = DEPTS.find(d => d.id === deptId);
+    if (!dept) return;
+    const pos = polar(cx, cy, R, dept.angle);
+    // nx/ny = offset from scene center (used for zoom transform)
+    const nx = pos.x - cx;
+    const ny = pos.y - cy;
+    nodePositions[deptId] = { nx, ny };
+    el.style.left = pos.x + 'px';
+    el.style.top  = pos.y + 'px';
   });
 }
 
 /* ============================================================
-   Canvas Resize
+   Zoom Transform
    ============================================================ */
-function resizeCanvas() {
-  dpr      = window.devicePixelRatio || 1;
-  canvasW  = skillWrap.clientWidth;
-  isMobile = canvasW < 600;
-  canvasH = isMobile
-    ? Math.round(window.innerHeight * 0.72)
-    : Math.round(window.innerHeight * 0.76);
-  canvasH = Math.max(canvasH, isMobile ? 500 : 640);
+function applyZoom(deptId) {
+  const { nx, ny } = nodePositions[deptId];
+  const zoom = isMobile ? 1.8 : 2.2;
+  scene.style.transform = `translate(${-nx * zoom}px, ${-ny * zoom}px) scale(${zoom})`;
+  // Subtle parallax on stars
+  starsCanvas.style.transform = `translate(${nx * 0.15}px, ${ny * 0.15}px)`;
+}
 
-  canvas.width        = canvasW * dpr;
-  canvas.height       = canvasH * dpr;
-  canvas.style.width  = canvasW + 'px';
-  canvas.style.height = canvasH + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  camera.scale = camera.tScale;   // instant reset on resize
-
-  generateStars();
-
-  if (treeState === 'overview') setOverviewTargets();
-  else                          setDetailTargets(activeDept);
-  // Snap positions on resize (no animation)
-  sceneNodes.forEach(n => { n.ax = n.tx; n.ay = n.ty; });
+function resetZoom() {
+  scene.style.transform = '';
+  starsCanvas.style.transform = '';
 }
 
 /* ============================================================
-   Drawing
+   Label init
    ============================================================ */
-function drawRing() {
-  if (_ringR <= 0) return;
-  ctx.save();
-
-  // Layer 1: Wide soft glow
-  ctx.beginPath();
-  ctx.arc(_ringCx, _ringCy, _ringR, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(180,180,210,0.10)';
-  ctx.lineWidth   = 10;
-  ctx.shadowColor = 'rgba(255,255,255,0.18)';
-  ctx.shadowBlur  = 28;
-  ctx.stroke();
-
-  // Layer 2: Sharp bright core
-  ctx.beginPath();
-  ctx.arc(_ringCx, _ringCy, _ringR, 0, Math.PI * 2);
-  ctx.strokeStyle = '#6a6a6a';
-  ctx.lineWidth   = 1;
-  ctx.shadowColor = 'rgba(255,255,255,0.35)';
-  ctx.shadowBlur  = 5;
-  ctx.stroke();
-
-  ctx.restore();
-}
-
-function drawStars() {
-  const cx = canvasW / 2, cy = canvasH / 2;
-  const maxDist = Math.hypot(cx, cy);
-  ctx.fillStyle = '#ffffff';
-  stars.forEach(s => {
-    const dist   = Math.hypot(s.x - cx, s.y - cy);
-    const radial = 1 - (dist / maxDist) * 0.72; // center=1.0, corners=0.28
-    ctx.save();
-    ctx.globalAlpha = s.alpha * radial;
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+function updateNodeLabels() {
+  scene.querySelectorAll('.skill-node').forEach(el => {
+    const dept = DEPTS.find(d => d.id === el.dataset.dept);
+    if (!dept) return;
+    const label = typeof dept.label === 'object' ? (dept.label[currentLang] || dept.label.en) : dept.label;
+    el.querySelector('.skill-node__label').textContent = label.replace(' / ', '\n');
   });
-}
-
-function drawNode(n, ts) {
-  if (n.alpha <= 0.01 || n.scale <= 0.01) return;
-  const isHov    = n.uid === hoveredId;
-  const isActive = treeState === 'detail' && n.deptId === activeDept;
-  const label    = typeof n.label === 'object' ? (n.label[currentLang] || n.label.en) : n.label;
-  const r        = (n.r || 38);
-  const breath   = 1 + 0.045 * Math.sin(ts * 0.00095 + n.breathPhase);
-
-  ctx.save();
-  ctx.globalAlpha = n.alpha;
-  ctx.translate(n.ax, n.ay);
-  ctx.scale(n.scale * breath, n.scale * breath);
-
-  if (isActive) {
-    ctx.shadowColor = 'rgba(255,255,255,0.13)';
-    ctx.shadowBlur  = 24;
-  } else if (isHov) {
-    ctx.shadowColor = 'rgba(255,255,255,0.08)';
-    ctx.shadowBlur  = 16;
-  }
-
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = isActive ? '#202020' : (isHov ? '#222222' : '#1a1a1a');
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  ctx.beginPath();
-  ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.strokeStyle = isActive ? '#909090' : (isHov ? '#686868' : '#484848');
-  ctx.lineWidth   = isActive ? 1.5 : 1;
-  ctx.stroke();
-
-  const parts = label.split(' / ');
-  ctx.font         = `500 10px Inter, -apple-system, sans-serif`;
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle    = isActive ? '#e8e8e8' : (isHov ? '#b0b0b0' : '#7a7a7a');
-
-  if (parts.length > 1) {
-    ctx.fillText(parts[0], 0, -7);
-    ctx.fillText(parts[1], 0, 7);
-  } else {
-    ctx.fillText(parts[0], 0, 0);
-  }
-
-  ctx.restore();
-}
-
-function drawAll(ts) {
-  ctx.clearRect(0, 0, canvasW, canvasH);
-  drawStars();
-  ctx.save();
-  ctx.translate(canvasW / 2, canvasH / 2);
-  ctx.scale(camera.scale, camera.scale);
-  ctx.translate(-canvasW / 2, -canvasH / 2);
-  drawRing();
-  sceneNodes.forEach(n => drawNode(n, ts));
-  ctx.restore();
-}
-
-/* ============================================================
-   Animation Loop
-   ============================================================ */
-function lerp(a, b, t) { return a + (b - a) * t; }
-
-function updateAnimations(dt) {
-  const sp = Math.min(1, dt * 0.005);
-  sceneNodes.forEach(n => {
-    n.ax    = lerp(n.ax,    n.tx,    sp);
-    n.ay    = lerp(n.ay,    n.ty,    sp);
-    n.alpha = lerp(n.alpha, n.tAlpha, sp * 1.1);
-    n.scale = lerp(n.scale, n.tScale, sp * 1.2);
-  });
-  camera.scale = lerp(camera.scale, camera.tScale, sp);
-  stars.forEach(s => {
-    s.x += s.vx * dt;
-    s.y += s.vy * dt;
-    if (s.x < 0)       s.x += canvasW;
-    if (s.x > canvasW) s.x -= canvasW;
-    if (s.y < 0)       s.y += canvasH;
-    if (s.y > canvasH) s.y -= canvasH;
-  });
-}
-
-function animate(ts) {
-  const dt  = Math.min(ts - lastFrame, 50);
-  lastFrame = ts;
-  updateAnimations(dt);
-  drawAll(ts);
-  rafId = requestAnimationFrame(animate);
 }
 
 /* ============================================================
@@ -553,17 +452,13 @@ function animate(ts) {
    ============================================================ */
 function startIntro() {
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  sceneNodes.forEach(n => { n.alpha = 0; n.tAlpha = 0; });
-
-  if (reduced) {
-    sceneNodes.forEach(n => { n.alpha = n.tAlpha = 1; });
-    return;
-  }
-
+  const nodeEls = scene.querySelectorAll('.skill-node');
+  if (reduced) return; // nodes visible immediately via CSS
+  nodeEls.forEach(el => { el.style.opacity = '0'; });
   DEPTS.forEach((d, di) => {
     setTimeout(() => {
-      const dn = sceneNodes.find(n => n.uid === 'dept_' + d.id);
-      if (dn) dn.tAlpha = 1;
+      const el = scene.querySelector(`.skill-node[data-dept="${d.id}"]`);
+      if (el) el.style.opacity = '';
     }, 200 + di * 150);
   });
 }
@@ -580,11 +475,12 @@ function showExp(deptId) {
 }
 
 function goOverview() {
-  console.log('[DBG] goOverview called');
   treeState  = 'overview';
   activeDept = null;
-  camera.tScale = 1.0;
-  setOverviewTargets();
+  resetZoom();
+  scene.querySelectorAll('.skill-node').forEach(el => {
+    el.classList.remove('active', 'inactive');
+  });
   document.getElementById('skills-split').classList.remove('detail');
   updateHint();
 }
@@ -592,92 +488,47 @@ function goOverview() {
 function goDetail(deptId) {
   treeState  = 'detail';
   activeDept = deptId;
-  camera.tScale = 1.35;
-  setDetailTargets(deptId);
+  applyZoom(deptId);
+  scene.querySelectorAll('.skill-node').forEach(el => {
+    const isActive = el.dataset.dept === deptId;
+    el.classList.toggle('active',   isActive);
+    el.classList.toggle('inactive', !isActive);
+  });
   showExp(deptId);
   document.getElementById('skills-split').classList.add('detail');
   updateHint();
 }
 
 /* ============================================================
-   Hit Detection
+   DOM Events
    ============================================================ */
-function getNodeAt(sx, sy) {
-  for (let i = sceneNodes.length - 1; i >= 0; i--) {
-    const n = sceneNodes[i];
-    if (n.alpha < 0.15) continue;
-    const r  = (n.r || 38) * n.scale + 8;
-    const dx = sx - n.ax, dy = sy - n.ay;
-    if (dx * dx + dy * dy <= r * r) return n;
-  }
-  return null;
+function initSkillEvents() {
+  scene.querySelectorAll('.skill-node').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const deptId = el.dataset.dept;
+      if (treeState === 'detail' && activeDept === deptId) goOverview();
+      else goDetail(deptId);
+    });
+
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const deptId = el.dataset.dept;
+        if (treeState === 'detail' && activeDept === deptId) goOverview();
+        else goDetail(deptId);
+      }
+    });
+  });
+
+  // Click outside nodes → back to overview
+  scene.addEventListener('click', e => {
+    if (!e.target.closest('.skill-node') && treeState === 'detail') goOverview();
+  });
 }
-
-function canvasXY(e) {
-  const rect = canvas.getBoundingClientRect();
-  if (e.touches)        return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-  if (e.changedTouches) return { x: e.changedTouches[0].clientX - rect.left, y: e.changedTouches[0].clientY - rect.top };
-  return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-}
-
-function handleClick(sx, sy) {
-  const n = getNodeAt(sx, sy);
-  console.log('[DBG] handleClick node:', n ? n.uid : 'null', '| state:', treeState);
-  if (!n) {
-    if (treeState === 'detail') goOverview();
-    return;
-  }
-  if (n.kind === 'dept') {
-    if (treeState === 'overview') {
-      goDetail(n.deptId);
-    } else if (treeState === 'detail') {
-      if (n.deptId === activeDept) goOverview();
-      else goDetail(n.deptId);
-    }
-  }
-}
-
-/* ============================================================
-   Canvas Events
-   ============================================================ */
-canvas.addEventListener('mousemove', e => {
-  const { x, y } = canvasXY(e);
-  const n         = getNodeAt(x, y);
-  const newHov    = n ? n.uid : null;
-  if (newHov !== hoveredId) {
-    hoveredId           = newHov;
-    canvas.style.cursor = newHov ? 'pointer' : 'default';
-  }
-});
-
-canvas.addEventListener('click', e => {
-  e.stopPropagation();
-  const { x, y } = canvasXY(e);
-  handleClick(x, y);
-});
-
-canvas.addEventListener('mouseleave', () => {
-  hoveredId           = null;
-  canvas.style.cursor = 'default';
-});
-
-canvas.addEventListener('touchend', e => {
-  e.stopPropagation();
-  const { x, y } = canvasXY(e);
-  handleClick(x, y);
-}, { passive: true });
-
-document.addEventListener('click', e => {
-  console.log('[DBG] click state:', treeState, '| onCanvas:', canvas.contains(e.target), '| target:', e.target);
-  if (treeState === 'detail' && !canvas.contains(e.target)) goOverview();
-}, true);
-
-document.addEventListener('touchend', e => {
-  if (treeState === 'detail' && !canvas.contains(e.target)) goOverview();
-}, { passive: true, capture: true });
 
 skillWrap.addEventListener('transitionend', e => {
-  if (e.propertyName === 'width') resizeCanvas();
+  if (e.propertyName === 'width') positionNodes();
 });
 
 backBtn.addEventListener('click', () => goOverview());
@@ -763,7 +614,9 @@ let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    resizeCanvas();
+    resizeStarsCanvas();
+    positionNodes();
+    if (treeState === 'detail' && activeDept) applyZoom(activeDept);
     updateHint();
   }, 150);
 }, { passive: true });
@@ -773,13 +626,15 @@ window.addEventListener('resize', () => {
    ============================================================ */
 function init() {
   setLanguage(currentLang);
-  buildSceneNodes();
-  resizeCanvas();
+  resizeStarsCanvas();
+  positionNodes();
+  updateNodeLabels();
+  initSkillEvents();
   startIntro();
   updateHint();
 
   lastFrame = performance.now();
-  rafId = requestAnimationFrame(animate);
+  rafId = requestAnimationFrame(animateStars);
 }
 
 if (document.readyState === 'loading') {
