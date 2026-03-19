@@ -23,7 +23,8 @@ const translations = {
     'about.val-status':   'Dostupný',
 
     'skills.heading': 'Stack & technologie.',
-    'skills.hint':    'Táhni pro prozkoumání · Klikni na uzel pro detail',
+    'skills.hint':    'Klikni na oblast pro detail',
+    'skills.back':    'Přehled',
 
     'projects.heading':   'Vybrané práce.',
     'projects.link-code': 'Kód ↗',
@@ -85,7 +86,8 @@ const translations = {
     'about.val-status':   'Available',
 
     'skills.heading': 'Stack & technologies.',
-    'skills.hint':    'Drag to explore · Click a node for details',
+    'skills.hint':    'Click a section for details',
+    'skills.back':    'Overview',
 
     'projects.heading':   'Selected work.',
     'projects.link-code': 'Code ↗',
@@ -150,7 +152,7 @@ function setLanguage(lang) {
   });
 
   updateHint();
-  if (selectedNode !== null) renderTooltip(selectedNode);
+  if (typeof activeDept !== 'undefined' && activeDept !== null) showExp(activeDept);
 }
 
 /* ============================================================
@@ -264,53 +266,28 @@ function runTerminalIntro() {
 }
 
 /* ============================================================
-   Skill Tree — Data  (tree-space coordinates in px)
+   Skill Tree — Data  (Orbit)
    ============================================================ */
-const TREE_NODES = [
-  // Root
-  { id: 'backend',    label: 'Backend',       group: 'root',      tx:    0, ty:   0 },
-
-  // Level 1
-  { id: 'php',        label: 'PHP',            group: 'lang',      tx: -310, ty: 140 },
-  { id: 'csharp',     label: 'C#',             group: 'lang',      tx:   90, ty: 140 },
-  { id: 'ai',         label: 'AI Tools',       group: 'tool',      tx:  380, ty: 140 },
-  { id: 'git',        label: 'Git',            group: 'tool',      tx:  560, ty: 140 },
-
-  // Level 2
-  { id: 'laravel',    label: 'Laravel',        group: 'framework', tx: -360, ty: 280 },
-  { id: 'dotnet',     label: '.NET',           group: 'framework', tx:  130, ty: 280 },
-  { id: 'cursor',     label: 'Cursor',         group: 'tool',      tx:  340, ty: 280 },
-  { id: 'claudecode', label: 'Claude Code',    group: 'tool',      tx:  510, ty: 280 },
-
-  // Level 3
-  { id: 'eloquent',   label: 'Eloquent',       group: 'lib',       tx: -530, ty: 420 },
-  { id: 'blade',      label: 'Blade',          group: 'lib',       tx: -390, ty: 420 },
-  { id: 'artisan',    label: 'Artisan',        group: 'lib',       tx: -250, ty: 420 },
-  { id: 'restapi',    label: 'REST APIs',      group: 'concept',   tx:  -60, ty: 420 },
-  { id: 'ef',         label: 'Entity Fw.',     group: 'lib',       tx:  185, ty: 420 },
-
-  // Level 4
-  { id: 'db',         label: 'MySQL / PG',     group: 'db',        tx:   60, ty: 560 },
+const DEPTS = [
+  { id: 'laravel', label: { cs: 'PHP / Laravel', en: 'PHP / Laravel' }, angle: 270 },
+  { id: 'dotnet',  label: { cs: 'C# / .NET',     en: 'C# / .NET'     }, angle: 30  },
+  { id: 'tooling', label: { cs: 'Tooling',        en: 'Tooling'       }, angle: 150 },
 ];
 
-const TREE_EDGES = [
-  ['backend', 'php'],
-  ['backend', 'csharp'],
-  ['backend', 'ai'],
-  ['backend', 'git'],
-  ['php',     'laravel'],
-  ['csharp',  'dotnet'],
-  ['ai',      'cursor'],
-  ['ai',      'claudecode'],
-  ['laravel', 'eloquent'],
-  ['laravel', 'blade'],
-  ['laravel', 'artisan'],
-  ['laravel', 'restapi'],
-  ['dotnet',  'ef'],
-  ['dotnet',  'restapi'],
-  ['eloquent','db'],
-  ['ef',      'db'],
-];
+const EXPERIENCE = {
+  laravel: {
+    cs: 'PHP a Laravel jsou moje primární technologie. Stavím RESTful API s Eloquent ORM, píšu autentizaci přes Sanctum, organizuju kód do service a repository vrstev a pokrývám funkce automatickými testy pomocí PHPUnit. Blade šablony používám pro admin panely a jednoduché frontendy.',
+    en: 'PHP and Laravel are my primary technologies. I build RESTful APIs with Eloquent ORM, implement authentication via Sanctum, organize code into service and repository layers, and cover features with PHPUnit tests. I use Blade templates for admin panels and lightweight frontends.',
+  },
+  dotnet: {
+    cs: 'V .NET ekosystému se zaměřuji na ASP.NET Core Web API — modeluji endpointy, pracuju s Entity Framework Core pro databázové operace a zabezpečuju rozhraní pomocí JWT tokenů. Ke každé aplikaci generuji Swagger dokumentaci pro snadné testování a onboarding.',
+    en: 'In the .NET ecosystem I focus on ASP.NET Core Web API — I design endpoints, use Entity Framework Core for database access, and secure APIs with JWT tokens. Every project includes Swagger documentation for easy testing and onboarding.',
+  },
+  tooling: {
+    cs: 'Git používám každodenně — feature branches, PR workflow, squash merging. Moderní AI nástroje jako Cursor a Claude Code jsou pevnou součástí mého denního workflow: urychlují psaní boilerplate, pomáhají s code review a automatizují rutinní refaktoring.',
+    en: 'I use Git every day — feature branches, PR workflow, squash merging. Modern AI tools like Cursor and Claude Code are a core part of my daily workflow: they speed up boilerplate writing, support code review, and automate routine refactoring.',
+  },
+};
 
 /* ============================================================
    Canvas & State
@@ -318,324 +295,225 @@ const TREE_EDGES = [
 const canvas    = document.getElementById('skill-canvas');
 const ctx       = canvas.getContext('2d');
 const skillWrap = document.getElementById('skills-container');
-const tooltip   = document.getElementById('skill-tooltip');
+const expPanel  = document.getElementById('skills-exp');
+const expTitle  = document.getElementById('skills-exp-title');
+const expText   = document.getElementById('skills-exp-text');
+const backBtn   = document.getElementById('skills-back');
 
-let canvasW     = 0;
-let canvasH     = 0;
-let dpr         = 1;
-let isMobile    = false;
+let canvasW = 0, canvasH = 0, dpr = 1, isMobile = false;
+let camera = { scale: 1, tScale: 1 };
 
-// Pan state
-let panX           = 0;
-let panY           = 0;
-let panInitialized = false;
+// Stars
+let stars = [];
 
-// Drag state
-let isDragging = false;
-let hasDragged = false;
-let dragStartX = 0, dragStartY = 0;
-let panStartX  = 0, panStartY  = 0;
+// Tree state
+let treeState  = 'overview'; // 'overview' | 'detail'
+let activeDept = null;
 
-// Interaction
-let selectedNode = null;
-let hoveredNode  = null;
+// Scene nodes
+let sceneNodes = [];
+let hoveredId  = null;
 
-// Node computed data
-let treeNodeMap = {};
-let edgeCurves  = [];
-let nodeLevels  = {};
-
-// Animation state (per node/edge)
-const nodeGlow  = {}; // 0–1
-const nodeAlpha = {}; // 0–1 (intro)
-const edgeAlpha = {}; // 0–1 (highlight)
-const edgeIntro = {}; // 0–1 (intro draw-in)
-
-// Particles
-const particles   = [];
-const spawnTimers = {};
-
-// Ripples
-const ripples = [];
+// Ring
+let _ringR = 0, _ringCx = 0, _ringCy = 0;
 
 // RAF
-let rafId     = null;
-let lastFrame = 0;
-let introStart = null;
-const LEVEL_DELAY = 180; // ms per level in intro
-const LEVEL_FADE  = 280; // ms to fade in
+let rafId = null, lastFrame = 0;
 
 /* ============================================================
    Canvas Setup
    ============================================================ */
-function computeNodeDimensions() {
-  ctx.save();
-  TREE_NODES.forEach(n => {
-    ctx.font = n.group === 'root'
-      ? '500 12px Inter, -apple-system, sans-serif'
-      : '400 11px Inter, -apple-system, sans-serif';
-    n.w = Math.max(74, ctx.measureText(n.label).width + 30);
-    n.h = n.group === 'root' ? 38 : 32;
-  });
-  ctx.restore();
-}
-
-function buildMaps() {
-  treeNodeMap = {};
-  TREE_NODES.forEach(n => treeNodeMap[n.id] = n);
-
-  edgeCurves = TREE_EDGES.map(([aId, bId]) => {
-    const a = treeNodeMap[aId];
-    const b = treeNodeMap[bId];
-    if (!a || !b) return null;
-    const sx   = a.tx;
-    const sy   = a.ty + a.h / 2;
-    const ex   = b.tx;
-    const ey   = b.ty - b.h / 2;
-    const midY = (sy + ey) / 2;
-    return { aId, bId, sx, sy, ex, ey, c1x: sx, c1y: midY, c2x: ex, c2y: midY };
-  });
-}
-
-function computeLevels() {
-  const lvl = {};
-  lvl['backend'] = 0;
-  let queue = ['backend'];
-  while (queue.length > 0) {
-    const next = [];
-    queue.forEach(id => {
-      TREE_EDGES.forEach(([a, b]) => {
-        if (a === id && !(b in lvl)) {
-          lvl[b] = lvl[id] + 1;
-          next.push(b);
-        }
-      });
+function generateStars() {
+  const count = Math.floor((canvasW * canvasH) / 2500);
+  stars = [];
+  for (let i = 0; i < count; i++) {
+    stars.push({
+      x:     Math.random() * canvasW,
+      y:     Math.random() * canvasH,
+      r:     Math.random() * 1.2 + 0.2,
+      alpha: Math.random() * 0.55 + 0.1,
+      vx:    (Math.random() - 0.5) * 0.010,
+      vy:    (Math.random() - 0.5) * 0.010,
     });
-    queue = next;
-  }
-  return lvl;
-}
-
-function resizeCanvas() {
-  dpr      = window.devicePixelRatio || 1;
-  canvasW  = skillWrap.clientWidth;
-  isMobile = canvasW < 600;
-  canvasH  = isMobile ? 420 : 500;
-
-  canvas.width        = canvasW * dpr;
-  canvas.height       = canvasH * dpr;
-  canvas.style.height = canvasH + 'px';
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-  computeNodeDimensions();
-  buildMaps();
-
-  if (!panInitialized) {
-    panX = canvasW / 2;
-    panY = 48;
-    panInitialized = true;
   }
 }
 
 /* ============================================================
-   Drawing Helpers
+   Scene — Build & Layout
    ============================================================ */
-function cubicBezierPt(t, sx, sy, c1x, c1y, c2x, c2y, ex, ey) {
-  const mt = 1 - t;
-  return {
-    x: mt*mt*mt*sx + 3*mt*mt*t*c1x + 3*mt*t*t*c2x + t*t*t*ex,
-    y: mt*mt*mt*sy + 3*mt*mt*t*c1y + 3*mt*t*t*c2y + t*t*t*ey,
-  };
+function buildSceneNodes() {
+  sceneNodes = [];
+  DEPTS.forEach(d => {
+    sceneNodes.push({
+      uid: 'dept_' + d.id, kind: 'dept', deptId: d.id,
+      label: d.label, angle: d.angle,
+      ax: 0, ay: 0, alpha: 0, scale: 1,
+      tx: 0, ty: 0, tAlpha: 0, tScale: 1,
+      r: 38,
+      breathPhase: Math.random() * Math.PI * 2,
+    });
+  });
 }
 
-function pill(ctx, cx, cy, w, h) {
-  const r = h / 2;
-  const x = cx - w / 2;
-  const y = cy - h / 2;
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
+function polar(cx, cy, r, angleDeg) {
+  const rad = (angleDeg - 90) * Math.PI / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function setOverviewTargets() {
+  const cx = canvasW / 2, cy = canvasH / 2;
+  const R  = Math.min(canvasH, canvasW) * (isMobile ? 0.33 : 0.38);
+  _ringCx = cx; _ringCy = cy; _ringR = R;
+  sceneNodes.forEach(n => {
+    const pos = polar(cx, cy, R, n.angle);
+    n.tx = pos.x; n.ty = pos.y; n.tAlpha = 1; n.tScale = 1;
+  });
+}
+
+function setDetailTargets(deptId) {
+  const cx = canvasW / 2, cy = canvasH / 2;
+  const R  = Math.min(canvasH, canvasW) * (isMobile ? 0.33 : 0.38);
+  _ringCx = cx; _ringCy = cy; _ringR = R;
+  sceneNodes.forEach(n => {
+    if (n.deptId === deptId) {
+      n.tx = cx; n.ty = cy; n.tAlpha = 1; n.tScale = 1.1;
+    } else {
+      const pos = polar(cx, cy, R, n.angle);
+      n.tx = pos.x; n.ty = pos.y; n.tAlpha = 0.25; n.tScale = 1;
+    }
+  });
+}
+
+/* ============================================================
+   Canvas Resize
+   ============================================================ */
+function resizeCanvas() {
+  dpr      = window.devicePixelRatio || 1;
+  canvasW  = skillWrap.clientWidth;
+  isMobile = canvasW < 600;
+  canvasH = isMobile
+    ? Math.round(window.innerHeight * 0.72)
+    : Math.round(window.innerHeight * 0.76);
+  canvasH = Math.max(canvasH, isMobile ? 500 : 640);
+
+  canvas.width        = canvasW * dpr;
+  canvas.height       = canvasH * dpr;
+  canvas.style.width  = canvasW + 'px';
+  canvas.style.height = canvasH + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  camera.scale = camera.tScale;   // instant reset on resize
+
+  generateStars();
+
+  if (treeState === 'overview') setOverviewTargets();
+  else                          setDetailTargets(activeDept);
+  // Snap positions on resize (no animation)
+  sceneNodes.forEach(n => { n.ax = n.tx; n.ay = n.ty; });
 }
 
 /* ============================================================
    Drawing
    ============================================================ */
-function drawDotGrid() {
-  const spacing = 26;
-  const dotR    = 0.9;
-  const ox = ((panX % spacing) + spacing) % spacing;
-  const oy = ((panY % spacing) + spacing) % spacing;
-
-  ctx.fillStyle = 'rgba(255,255,255,0.032)';
-  for (let x = ox; x <= canvasW + spacing; x += spacing) {
-    for (let y = oy; y <= canvasH + spacing; y += spacing) {
-      ctx.beginPath();
-      ctx.arc(x, y, dotR, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-}
-
-function drawEdge(curve, highlightA, introA) {
-  if (!curve || introA <= 0) return;
-  const sx = curve.sx + panX, sy = curve.sy + panY;
-  const ex = curve.ex + panX, ey = curve.ey + panY;
-  const c1x = curve.c1x + panX, c1y = curve.c1y + panY;
-  const c2x = curve.c2x + panX, c2y = curve.c2y + panY;
-
-  // For intro: partially draw the curve using incremental points
-  const steps = Math.round(60 * introA);
-
+function drawRing() {
+  if (_ringR <= 0) return;
   ctx.save();
-  ctx.globalAlpha = Math.min(1, introA * 2) * (highlightA > 0 ? 1 : 0.9);
 
+  // Layer 1: Wide soft glow
   ctx.beginPath();
-  ctx.moveTo(sx, sy);
-  for (let i = 1; i <= steps; i++) {
-    const tt = (i / 60);
-    const pt = cubicBezierPt(tt, curve.sx, curve.sy, curve.c1x, curve.c1y, curve.c2x, curve.c2y, curve.ex, curve.ey);
-    ctx.lineTo(pt.x + panX, pt.y + panY);
-  }
-
-  if (highlightA > 0) {
-    ctx.strokeStyle = `rgba(160,160,160,${0.25 + highlightA * 0.55})`;
-    ctx.lineWidth   = 1.5;
-    ctx.shadowColor = `rgba(200,200,200,${highlightA * 0.28})`;
-    ctx.shadowBlur  = 8;
-  } else {
-    ctx.strokeStyle = '#242424';
-    ctx.lineWidth   = 1;
-  }
+  ctx.arc(_ringCx, _ringCy, _ringR, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(180,180,210,0.10)';
+  ctx.lineWidth   = 10;
+  ctx.shadowColor = 'rgba(255,255,255,0.18)';
+  ctx.shadowBlur  = 28;
   ctx.stroke();
-  ctx.shadowBlur = 0;
-  ctx.restore();
-}
 
-function drawNode(n, glow, alpha) {
-  if (alpha <= 0) return;
-  const sx = n.tx + panX;
-  const sy = n.ty + panY;
-  const isRoot     = n.group === 'root';
-  const isSelected = n.id === selectedNode;
-  const isHovered  = n.id === hoveredNode;
-
-  ctx.save();
-  ctx.globalAlpha = alpha;
-
-  if (glow > 0) {
-    ctx.shadowColor = `rgba(210,210,210,${glow * 0.4})`;
-    ctx.shadowBlur  = 14 * glow;
-  }
-
-  // Fill
-  pill(ctx, sx, sy, n.w, n.h);
-  ctx.fillStyle = isSelected ? '#1f1f1f' : (isHovered ? '#1a1a1a' : '#161616');
-  ctx.fill();
-
-  // Border
-  pill(ctx, sx, sy, n.w, n.h);
-  ctx.lineWidth   = isRoot ? 1.5 : 1;
-  ctx.strokeStyle = isSelected ? '#888888'
-    : (isHovered ? '#444444'
-    : (isRoot    ? '#2e2e2e' : '#252525'));
+  // Layer 2: Sharp bright core
+  ctx.beginPath();
+  ctx.arc(_ringCx, _ringCy, _ringR, 0, Math.PI * 2);
+  ctx.strokeStyle = '#6a6a6a';
+  ctx.lineWidth   = 1;
+  ctx.shadowColor = 'rgba(255,255,255,0.35)';
+  ctx.shadowBlur  = 5;
   ctx.stroke();
-  ctx.shadowBlur = 0;
-
-  // Selected outer ring pulse
-  if (isSelected) {
-    const pulse = 0.12 + 0.08 * Math.sin(Date.now() * 0.0025);
-    pill(ctx, sx, sy, n.w + 10, n.h + 10);
-    ctx.strokeStyle = `rgba(180,180,180,${pulse})`;
-    ctx.lineWidth   = 1;
-    ctx.stroke();
-  }
-
-  // Label
-  ctx.font = isRoot
-    ? '500 12px Inter, -apple-system, sans-serif'
-    : '400 11px Inter, -apple-system, sans-serif';
-  ctx.textAlign    = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillStyle    = isSelected ? '#d8d8d8'
-    : (isHovered   ? '#a0a0a0'
-    : (isRoot      ? '#707070' : '#545454'));
-  ctx.fillText(n.label, sx, sy);
 
   ctx.restore();
 }
 
-function drawParticles() {
-  particles.forEach(p => {
-    const curve = edgeCurves[p.edgeIdx];
-    if (!curve) return;
-    const pos = cubicBezierPt(p.t, curve.sx, curve.sy, curve.c1x, curve.c1y, curve.c2x, curve.c2y, curve.ex, curve.ey);
+function drawStars() {
+  const cx = canvasW / 2, cy = canvasH / 2;
+  const maxDist = Math.hypot(cx, cy);
+  ctx.fillStyle = '#ffffff';
+  stars.forEach(s => {
+    const dist   = Math.hypot(s.x - cx, s.y - cy);
+    const radial = 1 - (dist / maxDist) * 0.72; // center=1.0, corners=0.28
     ctx.save();
-    ctx.globalAlpha = p.opacity * 0.85;
+    ctx.globalAlpha = s.alpha * radial;
     ctx.beginPath();
-    ctx.arc(pos.x + panX, pos.y + panY, p.size, 0, Math.PI * 2);
-    ctx.fillStyle = '#b0b0b0';
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   });
 }
 
-function drawRipples() {
-  ripples.forEach(r => {
-    ctx.save();
-    ctx.globalAlpha = r.alpha;
-    ctx.beginPath();
-    ctx.arc(r.x + panX, r.y + panY, r.radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(180,180,180,0.5)';
-    ctx.lineWidth   = 1;
-    ctx.stroke();
-    ctx.restore();
-  });
-}
+function drawNode(n, ts) {
+  if (n.alpha <= 0.01 || n.scale <= 0.01) return;
+  const isHov    = n.uid === hoveredId;
+  const isActive = treeState === 'detail' && n.deptId === activeDept;
+  const label    = typeof n.label === 'object' ? (n.label[currentLang] || n.label.en) : n.label;
+  const r        = (n.r || 38);
+  const breath   = 1 + 0.045 * Math.sin(ts * 0.00095 + n.breathPhase);
 
-function drawHint(alpha) {
-  if (alpha <= 0) return;
   ctx.save();
-  ctx.globalAlpha = alpha * 0.35;
-  ctx.font        = '400 11px Inter, -apple-system, sans-serif';
-  ctx.textAlign   = 'center';
-  ctx.textBaseline = 'bottom';
-  ctx.fillStyle   = '#666666';
-  ctx.fillText(t('skills.hint'), canvasW / 2, canvasH - 14);
+  ctx.globalAlpha = n.alpha;
+  ctx.translate(n.ax, n.ay);
+  ctx.scale(n.scale * breath, n.scale * breath);
+
+  if (isActive) {
+    ctx.shadowColor = 'rgba(255,255,255,0.13)';
+    ctx.shadowBlur  = 24;
+  } else if (isHov) {
+    ctx.shadowColor = 'rgba(255,255,255,0.08)';
+    ctx.shadowBlur  = 16;
+  }
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.fillStyle = isActive ? '#202020' : (isHov ? '#222222' : '#1a1a1a');
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, r, 0, Math.PI * 2);
+  ctx.strokeStyle = isActive ? '#909090' : (isHov ? '#686868' : '#484848');
+  ctx.lineWidth   = isActive ? 1.5 : 1;
+  ctx.stroke();
+
+  const parts = label.split(' / ');
+  ctx.font         = `500 10px Inter, -apple-system, sans-serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle    = isActive ? '#e8e8e8' : (isHov ? '#b0b0b0' : '#7a7a7a');
+
+  if (parts.length > 1) {
+    ctx.fillText(parts[0], 0, -7);
+    ctx.fillText(parts[1], 0, 7);
+  } else {
+    ctx.fillText(parts[0], 0, 0);
+  }
+
   ctx.restore();
 }
 
-function drawAll() {
+function drawAll(ts) {
   ctx.clearRect(0, 0, canvasW, canvasH);
-  drawDotGrid();
-
-  // Edges (below nodes)
-  TREE_EDGES.forEach(([aId, bId], i) => {
-    const key = `${aId}|${bId}`;
-    drawEdge(edgeCurves[i], edgeAlpha[key] || 0, edgeIntro[key] || 0);
-  });
-
-  drawParticles();
-  drawRipples();
-
-  // Nodes (on top)
-  TREE_NODES.forEach(n => {
-    drawNode(n, nodeGlow[n.id] || 0, nodeAlpha[n.id] || 0);
-  });
-
-  // Hint fade-in after intro
-  if (introStart !== null) {
-    const elapsed = Date.now() - introStart;
-    const maxLevel = Math.max(...Object.values(nodeLevels));
-    const hintStart = (maxLevel + 1) * LEVEL_DELAY + LEVEL_FADE + 400;
-    const hintAlpha = Math.min(1, Math.max(0, (elapsed - hintStart) / 600));
-    drawHint(hintAlpha);
-  } else {
-    drawHint(selectedNode ? 0 : 1);
-  }
+  drawStars();
+  ctx.save();
+  ctx.translate(canvasW / 2, canvasH / 2);
+  ctx.scale(camera.scale, camera.scale);
+  ctx.translate(-canvasW / 2, -canvasH / 2);
+  drawRing();
+  sceneNodes.forEach(n => drawNode(n, ts));
+  ctx.restore();
 }
 
 /* ============================================================
@@ -644,91 +522,29 @@ function drawAll() {
 function lerp(a, b, t) { return a + (b - a) * t; }
 
 function updateAnimations(dt) {
-  const lerpSpeed = Math.min(1, dt * 0.009);
-
-  // --- Intro ---
-  if (introStart !== null) {
-    const elapsed = Date.now() - introStart;
-
-    TREE_NODES.forEach(n => {
-      const level  = nodeLevels[n.id] !== undefined ? nodeLevels[n.id] : 0;
-      const target = Math.min(1, Math.max(0, (elapsed - level * LEVEL_DELAY) / LEVEL_FADE));
-      nodeAlpha[n.id] = target;
-    });
-
-    TREE_EDGES.forEach(([aId, bId], i) => {
-      const key    = `${aId}|${bId}`;
-      const level  = (nodeLevels[bId] !== undefined ? nodeLevels[bId] : 1);
-      const start  = (level - 0.5) * LEVEL_DELAY;
-      const target = Math.min(1, Math.max(0, (elapsed - start) / (LEVEL_FADE * 1.2)));
-      edgeIntro[key] = target;
-    });
-
-    const maxLevel  = Math.max(...Object.values(nodeLevels));
-    const doneAt    = (maxLevel + 1) * LEVEL_DELAY + LEVEL_FADE + 800;
-    if (elapsed > doneAt) introStart = null;
-  }
-
-  // --- Node glow targets ---
-  TREE_NODES.forEach(n => {
-    let target = 0;
-    if (n.id === selectedNode)      target = 1;
-    else if (n.id === hoveredNode)  target = 0.5;
-    else if (selectedNode !== null) {
-      const isNeighbor = TREE_EDGES.some(([a, b]) =>
-        (a === selectedNode && b === n.id) || (b === selectedNode && a === n.id)
-      );
-      if (isNeighbor) target = 0.28;
-    }
-    nodeGlow[n.id] = lerp(nodeGlow[n.id] || 0, target, lerpSpeed * 2);
+  const sp = Math.min(1, dt * 0.005);
+  sceneNodes.forEach(n => {
+    n.ax    = lerp(n.ax,    n.tx,    sp);
+    n.ay    = lerp(n.ay,    n.ty,    sp);
+    n.alpha = lerp(n.alpha, n.tAlpha, sp * 1.1);
+    n.scale = lerp(n.scale, n.tScale, sp * 1.2);
   });
-
-  // --- Edge highlight targets ---
-  TREE_EDGES.forEach(([aId, bId]) => {
-    const key    = `${aId}|${bId}`;
-    const active = selectedNode !== null && (aId === selectedNode || bId === selectedNode);
-    edgeAlpha[key] = lerp(edgeAlpha[key] || 0, active ? 1 : 0, lerpSpeed * 1.5);
+  camera.scale = lerp(camera.scale, camera.tScale, sp);
+  stars.forEach(s => {
+    s.x += s.vx * dt;
+    s.y += s.vy * dt;
+    if (s.x < 0)       s.x += canvasW;
+    if (s.x > canvasW) s.x -= canvasW;
+    if (s.y < 0)       s.y += canvasH;
+    if (s.y > canvasH) s.y -= canvasH;
   });
-
-  // --- Particles ---
-  const now = Date.now();
-  TREE_EDGES.forEach(([aId, bId], i) => {
-    const active = selectedNode !== null && (aId === selectedNode || bId === selectedNode);
-    if (!active) return;
-    const last = spawnTimers[i] || 0;
-    if (now - last > 320) {
-      spawnTimers[i] = now;
-      particles.push({
-        edgeIdx: i,
-        t:     Math.random() * 0.08,
-        speed: 0.0013 + Math.random() * 0.0007,
-        size:  1.0 + Math.random() * 1.0,
-        opacity: 0,
-      });
-    }
-  });
-
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.t += p.speed * dt;
-    if (p.t >= 1) { particles.splice(i, 1); continue; }
-    p.opacity = p.t < 0.15 ? p.t / 0.15 : p.t > 0.82 ? (1 - p.t) / 0.18 : 1;
-  }
-
-  // --- Ripples ---
-  for (let i = ripples.length - 1; i >= 0; i--) {
-    const r = ripples[i];
-    r.radius += 52 * dt / 1000;
-    r.alpha   = Math.max(0, r.alpha - 2.0 * dt / 1000);
-    if (r.alpha <= 0) ripples.splice(i, 1);
-  }
 }
 
-function animate(now) {
-  const dt = Math.min(now - lastFrame, 50);
-  lastFrame = now;
+function animate(ts) {
+  const dt  = Math.min(ts - lastFrame, 50);
+  lastFrame = ts;
   updateAnimations(dt);
-  drawAll();
+  drawAll(ts);
   rafId = requestAnimationFrame(animate);
 }
 
@@ -736,160 +552,135 @@ function animate(now) {
    Intro
    ============================================================ */
 function startIntro() {
-  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  TREE_NODES.forEach(n => { nodeAlpha[n.id] = 0; nodeGlow[n.id] = 0; });
-  TREE_EDGES.forEach(([a, b]) => {
-    edgeIntro[`${a}|${b}`] = 0;
-    edgeAlpha[`${a}|${b}`] = 0;
-  });
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  sceneNodes.forEach(n => { n.alpha = 0; n.tAlpha = 0; });
 
-  if (prefersReduced) {
-    TREE_NODES.forEach(n => nodeAlpha[n.id] = 1);
-    TREE_EDGES.forEach(([a, b]) => { edgeIntro[`${a}|${b}`] = 1; });
-    introStart = null;
-  } else {
-    introStart = Date.now();
+  if (reduced) {
+    sceneNodes.forEach(n => { n.alpha = n.tAlpha = 1; });
+    return;
   }
+
+  DEPTS.forEach((d, di) => {
+    setTimeout(() => {
+      const dn = sceneNodes.find(n => n.uid === 'dept_' + d.id);
+      if (dn) dn.tAlpha = 1;
+    }, 200 + di * 150);
+  });
 }
 
 /* ============================================================
-   Hit Detection  (screen → tree space)
+   State Transitions
    ============================================================ */
-function getNodeAt(screenX, screenY) {
-  const tx = screenX - panX;
-  const ty = screenY - panY;
-  for (const n of TREE_NODES) {
-    const hw = n.w / 2 + 4;
-    const hh = n.h / 2 + 4;
-    if (tx >= n.tx - hw && tx <= n.tx + hw && ty >= n.ty - hh && ty <= n.ty + hh) {
-      return n;
-    }
+function showExp(deptId) {
+  const exp  = EXPERIENCE[deptId];
+  const dept = DEPTS.find(d => d.id === deptId);
+  if (!exp || !dept) return;
+  expTitle.textContent = dept.label[currentLang] || dept.label.en;
+  expText.textContent  = exp[currentLang] || exp.en;
+}
+
+function goOverview() {
+  console.log('[DBG] goOverview called');
+  treeState  = 'overview';
+  activeDept = null;
+  camera.tScale = 1.0;
+  setOverviewTargets();
+  document.getElementById('skills-split').classList.remove('detail');
+  updateHint();
+}
+
+function goDetail(deptId) {
+  treeState  = 'detail';
+  activeDept = deptId;
+  camera.tScale = 1.35;
+  setDetailTargets(deptId);
+  showExp(deptId);
+  document.getElementById('skills-split').classList.add('detail');
+  updateHint();
+}
+
+/* ============================================================
+   Hit Detection
+   ============================================================ */
+function getNodeAt(sx, sy) {
+  for (let i = sceneNodes.length - 1; i >= 0; i--) {
+    const n = sceneNodes[i];
+    if (n.alpha < 0.15) continue;
+    const r  = (n.r || 38) * n.scale + 8;
+    const dx = sx - n.ax, dy = sy - n.ay;
+    if (dx * dx + dy * dy <= r * r) return n;
   }
   return null;
 }
 
 function canvasXY(e) {
   const rect = canvas.getBoundingClientRect();
-  if (e.touches)   return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+  if (e.touches)        return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
   if (e.changedTouches) return { x: e.changedTouches[0].clientX - rect.left, y: e.changedTouches[0].clientY - rect.top };
   return { x: e.clientX - rect.left, y: e.clientY - rect.top };
 }
 
-/* ============================================================
-   Tooltip
-   ============================================================ */
-function renderTooltip(nodeId) {
-  const n = treeNodeMap[nodeId];
-  if (!n) return;
-
-  document.getElementById('tooltip-name').textContent  = n.label;
-  document.getElementById('tooltip-group').textContent = t(`skill.group.${n.group}`);
-  document.getElementById('tooltip-desc').textContent  = t(`skill.${n.id}.desc`);
-  tooltip.classList.add('visible');
-
-  const sx = n.tx + panX;
-  const sy = n.ty + panY;
-  const TW = 220, TH = 100, PAD = 12;
-  const cW = canvasW, cH = canvasH;
-
-  let left = sx + n.w / 2 + PAD;
-  if (left + TW > cW - PAD) left = sx - n.w / 2 - TW - PAD;
-  let top  = Math.max(PAD, Math.min(cH - TH - PAD, sy - TH / 2));
-
-  tooltip.style.left = left + 'px';
-  tooltip.style.top  = top  + 'px';
-}
-
-function handleNodeClick(screenX, screenY) {
-  const node = getNodeAt(screenX, screenY);
-  if (node) {
-    if (selectedNode === node.id) {
-      selectedNode = null;
-      tooltip.classList.remove('visible');
-    } else {
-      selectedNode = node.id;
-      renderTooltip(node.id);
-      ripples.push({ x: node.tx, y: node.ty, radius: node.h / 2, alpha: 0.7 });
-    }
-  } else {
-    selectedNode = null;
-    tooltip.classList.remove('visible');
-  }
-}
-
-/* ============================================================
-   Canvas Events — Drag + Click
-   ============================================================ */
-canvas.addEventListener('mousedown', e => {
-  if (e.button !== 0) return;
-  isDragging = true;
-  hasDragged = false;
-  dragStartX = e.clientX;
-  dragStartY = e.clientY;
-  panStartX  = panX;
-  panStartY  = panY;
-  skillWrap.classList.add('dragging');
-});
-
-window.addEventListener('mousemove', e => {
-  if (!isDragging) {
-    // Hover detection
-    const { x, y } = canvasXY(e);
-    const node      = getNodeAt(x, y);
-    hoveredNode     = node ? node.id : null;
+function handleClick(sx, sy) {
+  const n = getNodeAt(sx, sy);
+  console.log('[DBG] handleClick node:', n ? n.uid : 'null', '| state:', treeState);
+  if (!n) {
+    if (treeState === 'detail') goOverview();
     return;
   }
-  const dx = e.clientX - dragStartX;
-  const dy = e.clientY - dragStartY;
-  if (Math.sqrt(dx * dx + dy * dy) > 5) hasDragged = true;
-  panX = panStartX + dx;
-  panY = panStartY + dy;
-  if (selectedNode !== null) renderTooltip(selectedNode);
+  if (n.kind === 'dept') {
+    if (treeState === 'overview') {
+      goDetail(n.deptId);
+    } else if (treeState === 'detail') {
+      if (n.deptId === activeDept) goOverview();
+      else goDetail(n.deptId);
+    }
+  }
+}
+
+/* ============================================================
+   Canvas Events
+   ============================================================ */
+canvas.addEventListener('mousemove', e => {
+  const { x, y } = canvasXY(e);
+  const n         = getNodeAt(x, y);
+  const newHov    = n ? n.uid : null;
+  if (newHov !== hoveredId) {
+    hoveredId           = newHov;
+    canvas.style.cursor = newHov ? 'pointer' : 'default';
+  }
 });
 
-window.addEventListener('mouseup', e => {
-  if (!isDragging) return;
-  isDragging = false;
-  skillWrap.classList.remove('dragging');
-  if (!hasDragged) {
-    const { x, y } = canvasXY(e);
-    handleNodeClick(x, y);
-  }
+canvas.addEventListener('click', e => {
+  e.stopPropagation();
+  const { x, y } = canvasXY(e);
+  handleClick(x, y);
 });
 
 canvas.addEventListener('mouseleave', () => {
-  hoveredNode = null;
-  if (!isDragging) skillWrap.classList.remove('dragging');
+  hoveredId           = null;
+  canvas.style.cursor = 'default';
 });
-
-// Touch drag
-canvas.addEventListener('touchstart', e => {
-  if (e.touches.length !== 1) return;
-  isDragging = true;
-  hasDragged = false;
-  dragStartX = e.touches[0].clientX;
-  dragStartY = e.touches[0].clientY;
-  panStartX  = panX;
-  panStartY  = panY;
-}, { passive: true });
-
-canvas.addEventListener('touchmove', e => {
-  if (!isDragging || e.touches.length !== 1) return;
-  const dx = e.touches[0].clientX - dragStartX;
-  const dy = e.touches[0].clientY - dragStartY;
-  if (Math.sqrt(dx * dx + dy * dy) > 8) hasDragged = true;
-  panX = panStartX + dx;
-  panY = panStartY + dy;
-  if (selectedNode !== null) renderTooltip(selectedNode);
-}, { passive: true });
 
 canvas.addEventListener('touchend', e => {
-  if (!hasDragged) {
-    const { x, y } = canvasXY(e);
-    handleNodeClick(x, y);
-  }
-  isDragging = false;
+  e.stopPropagation();
+  const { x, y } = canvasXY(e);
+  handleClick(x, y);
+}, { passive: true });
+
+document.addEventListener('click', e => {
+  console.log('[DBG] click state:', treeState, '| onCanvas:', canvas.contains(e.target), '| target:', e.target);
+  if (treeState === 'detail' && !canvas.contains(e.target)) goOverview();
+}, true);
+
+document.addEventListener('touchend', e => {
+  if (treeState === 'detail' && !canvas.contains(e.target)) goOverview();
+}, { passive: true, capture: true });
+
+skillWrap.addEventListener('transitionend', e => {
+  if (e.propertyName === 'width') resizeCanvas();
 });
+
+backBtn.addEventListener('click', () => goOverview());
 
 /* ============================================================
    Navbar
@@ -955,9 +746,14 @@ function updateHint() {
   const el = document.getElementById('skills-hint');
   if (!el) return;
   const isTouch = window.matchMedia('(hover: none)').matches;
-  el.textContent = isTouch
-    ? (currentLang === 'cs' ? 'Táhni pro prozkoumání · Klepni na uzel pro detail' : 'Drag to explore · Tap a node for details')
-    : t('skills.hint');
+  if (treeState === 'detail') {
+    el.style.opacity = '0';
+  } else {
+    el.style.opacity = '';
+    el.textContent = isTouch
+      ? (currentLang === 'cs' ? 'Klepni na oblast pro detail' : 'Tap a section for details')
+      : (currentLang === 'cs' ? 'Klikni na oblast pro detail' : 'Click a section for details');
+  }
 }
 
 /* ============================================================
@@ -967,11 +763,7 @@ let resizeTimer;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimer);
   resizeTimer = setTimeout(() => {
-    const oldW = canvasW;
     resizeCanvas();
-    // Adjust panX proportionally when canvas resizes
-    if (oldW > 0) panX = panX * (canvasW / oldW);
-    if (selectedNode !== null) renderTooltip(selectedNode);
     updateHint();
   }, 150);
 }, { passive: true });
@@ -981,8 +773,8 @@ window.addEventListener('resize', () => {
    ============================================================ */
 function init() {
   setLanguage(currentLang);
+  buildSceneNodes();
   resizeCanvas();
-  nodeLevels = computeLevels();
   startIntro();
   updateHint();
 

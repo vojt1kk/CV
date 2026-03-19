@@ -123,17 +123,25 @@
         </h2>
       </div>
 
-      <div class="skills__canvas-wrap" id="skills-container">
-        <canvas class="skill-canvas" id="skill-canvas" aria-label="Interaktivní skill tree"></canvas>
-        <div class="skill-tooltip" id="skill-tooltip" role="tooltip" aria-live="polite">
-          <div class="skill-tooltip__name"  id="tooltip-name"></div>
-          <div class="skill-tooltip__group" id="tooltip-group"></div>
-          <div class="skill-tooltip__desc"  id="tooltip-desc"></div>
+      <div class="skills__split" id="skills-split">
+        <div class="skills__canvas-wrap" id="skills-container">
+          <canvas class="skill-canvas" id="skill-canvas" aria-label="Interaktivní skill tree"></canvas>
         </div>
-      </div>
+
+        <div class="skills__exp" id="skills-exp" aria-live="polite">
+          <div class="skills__exp-header">
+            <button class="skills__exp-back" id="skills-back">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M8 10L4 6l4-4"/></svg>
+              <span data-i18n="skills.back">Přehled</span>
+            </button>
+            <span class="skills__exp-dept" id="skills-exp-title"></span>
+          </div>
+          <p class="skills__exp-text" id="skills-exp-text"></p>
+        </div>
+      </div><!-- /.skills__split -->
 
       <p class="skills__hint" id="skills-hint" data-i18n="skills.hint">
-        Klikni na uzel pro více informací
+        Klikni na oblast pro detail
       </p>
 
     </div>
