@@ -1,7 +1,7 @@
 /* ============================================================
    Import
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 
 /* ============================================================
    CSS Variables
@@ -318,6 +318,17 @@ img { max-width: 100%; display: block; }
   text-transform: uppercase;
   color: var(--fg-3);
   animation: fadeUp 0.8s 0.48s both;
+}
+
+.hero__role-char {
+  display: inline-block;
+  animation: charWeight 3s ease-in-out infinite;
+  animation-delay: calc(var(--i) * -0.18s);
+}
+
+@keyframes charWeight {
+  0%, 100% { font-variation-settings: 'wght' 300; color: var(--fg-3); }
+  50%       { font-variation-settings: 'wght' 600; color: var(--fg-2); }
 }
 
 .hero__scroll {

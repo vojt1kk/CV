@@ -154,6 +154,25 @@ function setLanguage(lang) {
   updateHint();
   if (typeof updateNodeLabels === 'function') updateNodeLabels();
   if (typeof activeDept !== 'undefined' && activeDept !== null) showExp(activeDept);
+  splitRoleChars();
+}
+
+function splitRoleChars() {
+  const el = document.querySelector('.hero__role');
+  if (!el) return;
+  const text = el.textContent;
+  el.textContent = '';
+  [...text].forEach((ch, i) => {
+    if (ch === ' ') {
+      el.appendChild(document.createTextNode('\u00a0'));
+      return;
+    }
+    const span = document.createElement('span');
+    span.className = 'hero__role-char';
+    span.style.setProperty('--i', i);
+    span.textContent = ch;
+    el.appendChild(span);
+  });
 }
 
 /* ============================================================
@@ -786,3 +805,76 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
+/* ============================================================
+   Hero Name Scramble
+   ============================================================ */
+(function () {
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&';
+  const SCRAMBLE_ROUNDS = 6;   // kolikrát každý znak zamíchá před usazením
+  const CHAR_DELAY      = 38;  // ms mezi usazením každého znaku
+  const FRAME_INTERVAL  = 50;  // ms mezi každým rámcem scramble
+
+  function scramble(el, finalText, startDelay) {
+    const len = finalText.length;
+    let locked = 0;          // počet již usazených znaků zleva
+    let rounds = Array(len).fill(0);
+    let current = Array.from({ length: len }, () =>
+      finalText[0] === ' ' ? ' ' : rand()
+    );
+
+    function rand() {
+      return CHARS[Math.floor(Math.random() * CHARS.length)];
+    }
+
+    function render() {
+      el.textContent = current.join('');
+    }
+
+    function tick() {
+      if (locked >= len) return;
+
+      for (let i = locked; i < len; i++) {
+        if (finalText[i] === ' ') {
+          current[i] = ' ';
+          continue;
+        }
+        if (rounds[i] >= SCRAMBLE_ROUNDS) {
+          current[i] = finalText[i];
+          if (i === locked) locked++;
+        } else {
+          current[i] = rand();
+          rounds[i]++;
+        }
+      }
+
+      render();
+
+      if (locked < len) setTimeout(tick, FRAME_INTERVAL);
+    }
+
+    // Stagger: každý znak se začne usazovat o CHAR_DELAY ms později
+    setTimeout(() => {
+      render();
+      setTimeout(tick, FRAME_INTERVAL);
+    }, startDelay);
+  }
+
+  function runScramble() {
+    const first = document.querySelector('.hero__name-first');
+    const last  = document.querySelector('.hero__name-last');
+    if (!first || !last) return;
+
+    const firstName = first.textContent.trim();
+    const lastName  = last.textContent.trim();
+
+    scramble(first, firstName, 80);
+    scramble(last,  lastName,  80 + firstName.length * CHAR_DELAY * 0.4);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runScramble);
+  } else {
+    runScramble();
+  }
+})();
