@@ -285,7 +285,7 @@ img { max-width: 100%; display: block; }
    About
    ============================================================ */
 .about {
-  min-height: 100svh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -366,7 +366,7 @@ img { max-width: 100%; display: block; }
    Skills — Canvas
    ============================================================ */
 .skills {
-  min-height: 100svh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -394,7 +394,7 @@ img { max-width: 100%; display: block; }
   position: absolute;
   inset: 0;
   transform-origin: center center;
-  transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 1300ms cubic-bezier(0.1, 1, 0.2, 1);
   will-change: transform;
 }
 
@@ -410,7 +410,6 @@ img { max-width: 100%; display: block; }
   transform: translate(-50%, -50%);
   border-radius: 50%;
   border: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.03);
   pointer-events: none;
 }
 
@@ -448,24 +447,100 @@ img { max-width: 100%; display: block; }
   50%       { transform: translate(-50%, -50%) scale(1.04); }
 }
 
+@keyframes nodeGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255,255,255,0.08), inset 0 0 6px rgba(255,255,255,0.04); }
+  50%       { box-shadow: 0 0 24px rgba(255,255,255,0.18), inset 0 0 12px rgba(255,255,255,0.09); }
+}
+
+@keyframes ringPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255,255,255,0.04); opacity: 0.6; }
+  50%       { box-shadow: 0 0 26px rgba(255,255,255,0.13); opacity: 1; }
+}
+
+/* Motion blur — whole canvas on zoom */
+@keyframes zoomBlur {
+  0%   { filter: blur(0px) brightness(1); }
+  25%  { filter: blur(7px) brightness(1.15); }
+  70%  { filter: blur(2px) brightness(1.04); }
+  100% { filter: blur(0px) brightness(1); }
+}
+
+.skills__canvas-wrap.zooming {
+  animation: zoomBlur 1070ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Arrival shake — whole canvas simulates braking */
+@keyframes arrivalShake {
+  0%   { transform: translate(0, 0); }
+  30%  { transform: translate(-0.3px, 0.2px); }
+  65%  { transform: translate(0.2px, -0.1px); }
+  100% { transform: translate(0, 0); }
+}
+
+.skills__canvas-wrap.arrival {
+  animation: arrivalShake 420ms cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
 .skill-node:not(.active):not(.inactive) {
-  animation: nodeBreath 3s ease-in-out infinite;
+  animation: nodeBreath 3.4s ease-in-out infinite,
+             nodeGlow   4.2s ease-in-out infinite;
+}
+
+/* Stagger glow phase per node so they don't pulse in sync */
+.skill-node[data-dept="laravel"]:not(.active):not(.inactive) { animation-delay: 0s, 0s; }
+.skill-node[data-dept="dotnet"]:not(.active):not(.inactive)  { animation-delay: 0s, 1.4s; }
+.skill-node[data-dept="tooling"]:not(.active):not(.inactive) { animation-delay: 0s, 2.8s; }
+
+.orbit-ring {
+  animation: ringPulse 5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .skill-node { animation: none !important; transition: none; }
 }
 
-.skill-node__label {
-  font-size: 11.5px;
-  font-weight: 500;
-  color: #d0d0d0;
-  text-align: center;
-  line-height: 1.3;
-  pointer-events: none;
-  white-space: pre-line;
-  font-family: var(--font-sans);
+/* Orbiting word labels */
+@keyframes orbitLabel {
+  from { transform: rotate(0deg)   translateX(64px) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(64px) rotate(-360deg); }
 }
+
+.orbit-label {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  font-size: 8px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+  white-space: nowrap;
+  pointer-events: none;
+  transform-origin: 0 0;
+  animation: orbitLabel 18s linear infinite;
+  animation-delay: calc(var(--i) / var(--total) * -18s);
+  transition: opacity 600ms ease;
+}
+
+.skill-node.inactive .orbit-label { opacity: 0; }
+.skill-node.active   .orbit-label { color: rgba(255, 255, 255, 0.6); }
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-label { animation: none; }
+}
+
+.node-icon {
+  width: 34px;
+  height: 34px;
+  color: rgba(255, 255, 255, 0.75);
+  filter: drop-shadow(0 0 7px rgba(255, 255, 255, 0.3));
+  pointer-events: none;
+  flex-shrink: 0;
+  transition: color 300ms ease, filter 300ms ease;
+}
+
+.skill-node:hover  .node-icon { color: rgba(255,255,255,0.88); filter: drop-shadow(0 0 10px rgba(255,255,255,0.4)); }
+.skill-node.active .node-icon { color: rgba(255,255,255,0.97); filter: drop-shadow(0 0 14px rgba(255,255,255,0.6)); }
 
 /* Experience panel — absolute overlay inside canvas-wrap */
 .skills__exp {
@@ -568,7 +643,7 @@ img { max-width: 100%; display: block; }
    Projects
    ============================================================ */
 .projects {
-  min-height: 100svh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -650,7 +725,7 @@ img { max-width: 100%; display: block; }
    Contact
    ============================================================ */
 .contact {
-  min-height: 100svh;
+  height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;

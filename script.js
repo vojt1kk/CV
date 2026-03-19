@@ -275,6 +275,12 @@ const DEPTS = [
   { id: 'tooling', label: { cs: 'Tooling',        en: 'Tooling'       }, angle: 150 },
 ];
 
+const ORBIT_LABELS = {
+  laravel: ['Laravel', 'PHP', 'Eloquent', 'Blade', 'Sanctum', 'Pest'],
+  dotnet:  ['C#', 'ASP.NET', 'EF Core', 'JWT', 'Swagger', 'LINQ'],
+  tooling: ['Git', 'Cursor', 'Claude', 'Docker', 'Composer', 'VS Code'],
+};
+
 const EXPERIENCE = {
   laravel: {
     cs: 'PHP a Laravel jsou moje primární technologie. Stavím RESTful API s Eloquent ORM, píšu autentizaci přes Sanctum, organizuju kód do service a repository vrstev a pokrývám funkce automatickými testy pomocí PHPUnit. Blade šablony používám pro admin panely a jednoduché frontendy.',
@@ -442,11 +448,21 @@ function resetZoom() {
    Label init
    ============================================================ */
 function updateNodeLabels() {
+  // Labels replaced by SVG icons; no-op
+}
+
+function addOrbitLabels() {
   scene.querySelectorAll('.skill-node').forEach(el => {
-    const dept = DEPTS.find(d => d.id === el.dataset.dept);
-    if (!dept) return;
-    const label = typeof dept.label === 'object' ? (dept.label[currentLang] || dept.label.en) : dept.label;
-    el.querySelector('.skill-node__label').textContent = label.replace(' / ', '\n');
+    const labels = ORBIT_LABELS[el.dataset.dept] || [];
+    const total  = labels.length;
+    labels.forEach((text, i) => {
+      const span = document.createElement('span');
+      span.className = 'orbit-label';
+      span.textContent = text;
+      span.style.setProperty('--i',     i);
+      span.style.setProperty('--total', total);
+      el.appendChild(span);
+    });
   });
 }
 
@@ -477,9 +493,22 @@ function showExp(deptId) {
   expText.textContent  = exp[currentLang] || exp.en;
 }
 
+function triggerZoomEffects() {
+  skillWrap.classList.remove('zooming');
+  requestAnimationFrame(() => {
+    skillWrap.classList.add('zooming');
+    skillWrap.addEventListener('animationend', () => skillWrap.classList.remove('zooming'), { once: true });
+  });
+  setTimeout(() => {
+    skillWrap.classList.add('arrival');
+    skillWrap.addEventListener('animationend', () => skillWrap.classList.remove('arrival'), { once: true });
+  }, 900);
+}
+
 function goOverview() {
   treeState  = 'overview';
   activeDept = null;
+  triggerZoomEffects();
   resetZoom();
   scene.querySelectorAll('.skill-node').forEach(el => {
     el.classList.remove('active', 'inactive');
@@ -507,8 +536,9 @@ function goDetail(deptId) {
   skillWrap.classList.add(side);
   showExp(deptId);
   applyZoom(deptId);
-  // Small delay so CSS transition picks up the change
+
   requestAnimationFrame(() => skillWrap.classList.add('active'));
+  triggerZoomEffects();
 
   updateHint();
 }
@@ -640,6 +670,7 @@ function init() {
   resizeStarsCanvas();
   positionNodes();
   updateNodeLabels();
+  addOrbitLabels();
   initSkillEvents();
   startIntro();
   updateHint();
