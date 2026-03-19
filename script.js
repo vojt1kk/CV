@@ -542,6 +542,9 @@ function goOverview() {
   resetZoom();
   scene.querySelectorAll('.skill-node').forEach(el => {
     el.classList.remove('active', 'inactive');
+    // Seed a gentle scale bump — lerp will ease it back down
+    const st = window.gravState && window.gravState[el.dataset.dept];
+    if (st) { st.scale = 1.18; st.tx = 0; st.ty = 0; }
   });
   skillWrap.classList.remove('detail-left', 'detail-right', 'active');
   updateHint();
@@ -618,10 +621,22 @@ backBtn.addEventListener('click', () => goOverview());
   const FADE_END   = 80;
   const ON_NODE_R  = 60;
 
+  const GRAV_RADIUS   = 240;
+  const GRAV_MAX_SCALE = 1.35;
+  const GRAV_MAX_PULL  = 28;
+  const GRAV_LERP      = 0.07;   // lower = slower/heavier
+
   let mx = -9999, my = -9999;
   let frameQueued = false;
   let cursorVisible = false;
   const skillSection = document.getElementById('skills');
+
+  // Animated state per node — lerped each frame (exposed on window for goOverview)
+  window.gravState = {};
+  const gravState = window.gravState;
+  scene.querySelectorAll('.skill-node').forEach(el => {
+    gravState[el.dataset.dept] = { scale: 1, tx: 0, ty: 0 };
+  });
 
   function getNodeCenters() {
     return Array.from(scene.querySelectorAll('.skill-node')).map(el => {
@@ -679,7 +694,65 @@ backBtn.addEventListener('click', () => goOverview());
       guideGrad.setAttribute('x2', mx);
       guideGrad.setAttribute('y2', my);
     }
+
   }
+
+  // Gravity loop — runs every frame, lerps toward targets
+  function gravityTick() {
+    requestAnimationFrame(gravityTick);
+
+    const inSkills = isInSkillsSection();
+    const nodeEls = scene.querySelectorAll('.skill-node');
+
+    // Batch read: base positions (subtract current pull to avoid feedback)
+    const nodeData = [];
+    nodeEls.forEach(el => {
+      const st = gravState[el.dataset.dept];
+      const r = el.getBoundingClientRect();
+      nodeData.push({
+        el,
+        dept: el.dataset.dept,
+        cx: r.left + r.width / 2 - st.tx,
+        cy: r.top + r.height / 2 - st.ty,
+      });
+    });
+
+    // Compute targets
+    nodeData.forEach(({ el, dept, cx, cy }) => {
+      const st = gravState[dept];
+      let targetScale = 1, targetTx = 0, targetTy = 0;
+
+      if (inSkills && treeState === 'overview') {
+        const d = Math.hypot(cx - mx, cy - my);
+        if (d < GRAV_RADIUS && d > 1) {
+          // inverse-ish falloff: stronger as you get closer
+          const proximity = 1 - d / GRAV_RADIUS;
+          const ease = proximity * proximity;           // quadratic
+
+          targetScale = 1 + ease * (GRAV_MAX_SCALE - 1);
+
+          const pull = ease * GRAV_MAX_PULL;
+          targetTx = ((mx - cx) / d) * pull;
+          targetTy = ((my - cy) / d) * pull;
+        }
+      }
+
+      // Lerp toward targets
+      st.scale += (targetScale - st.scale) * GRAV_LERP;
+      st.tx    += (targetTx    - st.tx)    * GRAV_LERP;
+      st.ty    += (targetTy    - st.ty)    * GRAV_LERP;
+
+      // Snap to rest when close enough
+      if (Math.abs(st.scale - 1) < 0.002 && Math.abs(st.tx) < 0.1 && Math.abs(st.ty) < 0.1) {
+        st.scale = 1; st.tx = 0; st.ty = 0;
+      }
+
+      el.style.setProperty('--prox-scale', st.scale);
+      el.style.setProperty('--prox-tx', st.tx.toFixed(1) + 'px');
+      el.style.setProperty('--prox-ty', st.ty.toFixed(1) + 'px');
+    });
+  }
+  requestAnimationFrame(gravityTick);
 
   function scheduleFrame() {
     if (frameQueued) return;
@@ -697,10 +770,10 @@ backBtn.addEventListener('click', () => goOverview());
     scheduleFrame();
   }, { passive: true });
 
-  // Recompute on scroll — node viewport positions shift during scroll
   window.addEventListener('scroll', scheduleFrame, { passive: true });
 
   document.addEventListener('mouseleave', () => {
+    mx = -9999; my = -9999;
     guideSvg.style.opacity = '0';
     cursor.classList.remove('on-node');
   });

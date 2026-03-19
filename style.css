@@ -594,6 +594,9 @@ img { max-width: 100%; display: block; }
 
 /* Skill nodes */
 .skill-node {
+  --prox-scale: 1;
+  --prox-tx: 0px;
+  --prox-ty: 0px;
   position: absolute;
   width: 86px;
   height: 86px;
@@ -604,9 +607,8 @@ img { max-width: 100%; display: block; }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transform: translate(-50%, -50%) scale(1);
-  transition: transform 600ms cubic-bezier(0.4, 0, 0.2, 1),
-              opacity   600ms cubic-bezier(0.4, 0, 0.2, 1),
+  transform: translate(calc(-50% + var(--prox-tx)), calc(-50% + var(--prox-ty))) scale(var(--prox-scale));
+  transition: opacity   600ms cubic-bezier(0.4, 0, 0.2, 1),
               filter    600ms cubic-bezier(0.4, 0, 0.2, 1),
               border-color 300ms ease,
               box-shadow   300ms ease;
@@ -616,15 +618,16 @@ img { max-width: 100%; display: block; }
 
 .skill-node:hover  { border-color: #686868; box-shadow: 0 0 14px rgba(255, 255, 255, 0.08); }
 .skill-node:focus-visible { outline: 2px solid #686868; outline-offset: 3px; }
-.skill-node.active { border-color: #909090; box-shadow: 0 0 22px rgba(255, 255, 255, 0.14); }
+.skill-node.active { border-color: #909090; box-shadow: 0 0 22px rgba(255, 255, 255, 0.14); transition: opacity 600ms cubic-bezier(0.4,0,0.2,1), filter 600ms cubic-bezier(0.4,0,0.2,1), border-color 300ms ease, box-shadow 300ms ease, transform 300ms cubic-bezier(0.25,1,0.5,1); }
+.skill-node.active:hover { --prox-scale: 1.12; }
 .skill-node.inactive {
   opacity: 0.25;
   filter: blur(1.5px);
 }
 
 @keyframes nodeBreath {
-  0%, 100% { transform: translate(-50%, -50%) scale(1); }
-  50%       { transform: translate(-50%, -50%) scale(1.04); }
+  0%, 100% { transform: translate(calc(-50% + var(--prox-tx, 0px)), calc(-50% + var(--prox-ty, 0px))) scale(var(--prox-scale, 1)); }
+  50%       { transform: translate(calc(-50% + var(--prox-tx, 0px)), calc(-50% + var(--prox-ty, 0px))) scale(calc(var(--prox-scale, 1) * 1.04)); }
 }
 
 @keyframes nodeGlow {
