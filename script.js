@@ -168,7 +168,7 @@ function typeRole(text, delay) {
 
   const prompt = document.createElement('span');
   prompt.className = 'hero__role-prompt';
-  prompt.textContent = '/';
+  prompt.textContent = '//';
   el.appendChild(prompt);
 
   const cursor = document.createElement('span');
