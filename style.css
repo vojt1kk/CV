@@ -484,8 +484,8 @@ img { max-width: 100%; display: block; }
 
 /* Node on the right → panel on the right */
 .skills__canvas-wrap.detail-right .skills__exp {
-  right: 3%;
-  left: auto;
+  left: 58%;
+  right: auto;
   transform: translateY(-50%) translateX(24px);
   opacity: 0;
   pointer-events: none;
@@ -499,8 +499,8 @@ img { max-width: 100%; display: block; }
 
 /* Node on the left → panel on the left */
 .skills__canvas-wrap.detail-left .skills__exp {
-  left: 3%;
-  right: auto;
+  right: 58%;
+  left: auto;
   transform: translateY(-50%) translateX(-24px);
   opacity: 0;
   pointer-events: none;

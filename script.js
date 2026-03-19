@@ -428,7 +428,7 @@ function applyZoom(deptId) {
   // Shift node to opposite side so panel has room
   // nx < 0 = left node → shift right, panel on left
   // nx >= 0 = right node → shift left, panel on right
-  const sideShift = isMobile ? 0 : (nx < 0 ? starsW * 0.18 : -starsW * 0.18);
+  const sideShift = isMobile ? 0 : (nx < 0 ? starsW * 0.10 : -starsW * 0.10);
   scene.style.transform = `translate(${-nx * zoom + sideShift}px, ${-ny * zoom}px) scale(${zoom})`;
   starsCanvas.style.transform = `translate(${nx * 0.12}px, ${ny * 0.12}px)`;
 }
