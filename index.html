@@ -314,6 +314,24 @@
     </div>
   </footer>
 
+  <!-- Custom cursor -->
+  <div id="custom-cursor"></div>
+
+  <!-- Guide line SVG overlay -->
+  <svg id="cursor-guide" aria-hidden="true">
+    <defs>
+      <linearGradient id="guide-grad" gradientUnits="userSpaceOnUse">
+        <stop offset="0%"   stop-color="white" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="white" stop-opacity="0"/>
+      </linearGradient>
+      <filter id="guide-glow" x="-100%" y="-100%" width="300%" height="300%">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <line id="guide-line" stroke="url(#guide-grad)" stroke-width="1.8" stroke-dasharray="6 6" filter="url(#guide-glow)"/>
+  </svg>
+
   <script src="script.js"></script>
 </body>
 </html>

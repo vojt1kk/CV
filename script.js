@@ -575,6 +575,108 @@ function initSkillEvents() {
 backBtn.addEventListener('click', () => goOverview());
 
 /* ============================================================
+   Custom Cursor + Guide Line
+   ============================================================ */
+(function initCustomCursor() {
+  const cursor    = document.getElementById('custom-cursor');
+  const guideSvg  = document.getElementById('cursor-guide');
+  const guideLine = document.getElementById('guide-line');
+  const guideGrad = document.getElementById('guide-grad');
+  if (!cursor || !guideSvg || !guideLine || !guideGrad) return;
+
+  const FADE_START = 340;
+  const FADE_END   = 80;
+  const ON_NODE_R  = 60;
+
+  let mx = -9999, my = -9999;
+  let frameQueued = false;
+  let cursorVisible = false;
+  const skillSection = document.getElementById('skills');
+
+  function getNodeCenters() {
+    return Array.from(scene.querySelectorAll('.skill-node')).map(el => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+  }
+
+  function nearest(nodes, cx, cy) {
+    let best = null, bestDist = Infinity;
+    nodes.forEach(n => {
+      const d = Math.hypot(n.x - cx, n.y - cy);
+      if (d < bestDist) { bestDist = d; best = n; }
+    });
+    return { node: best, dist: bestDist };
+  }
+
+  function isInSkillsSection() {
+    if (!skillSection) return false;
+    const r = skillSection.getBoundingClientRect();
+    return my >= r.top && my <= r.bottom && mx >= r.left && mx <= r.right;
+  }
+
+  function paint() {
+    frameQueued = false;
+    cursor.style.left = mx + 'px';
+    cursor.style.top  = my + 'px';
+
+    if (!isInSkillsSection()) {
+      guideSvg.style.opacity = '0';
+      cursor.classList.remove('on-node');
+      return;
+    }
+
+    const nodes = getNodeCenters();
+    if (!nodes.length) return;
+
+    const { node, dist } = nearest(nodes, mx, my);
+    const onNode = dist < ON_NODE_R;
+    cursor.classList.toggle('on-node', onNode);
+
+    let opacity = 0;
+    if (!onNode && dist < FADE_START) {
+      opacity = Math.min(1, (FADE_START - dist) / (FADE_START - FADE_END));
+    }
+    guideSvg.style.opacity = opacity.toFixed(3);
+
+    if (opacity > 0 && node) {
+      guideLine.setAttribute('x1', node.x);
+      guideLine.setAttribute('y1', node.y);
+      guideLine.setAttribute('x2', mx);
+      guideLine.setAttribute('y2', my);
+      guideGrad.setAttribute('x1', node.x);
+      guideGrad.setAttribute('y1', node.y);
+      guideGrad.setAttribute('x2', mx);
+      guideGrad.setAttribute('y2', my);
+    }
+  }
+
+  function scheduleFrame() {
+    if (frameQueued) return;
+    frameQueued = true;
+    requestAnimationFrame(paint);
+  }
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX;
+    my = e.clientY;
+    if (!cursorVisible) {
+      cursorVisible = true;
+      cursor.style.display = 'block';
+    }
+    scheduleFrame();
+  }, { passive: true });
+
+  // Recompute on scroll — node viewport positions shift during scroll
+  window.addEventListener('scroll', scheduleFrame, { passive: true });
+
+  document.addEventListener('mouseleave', () => {
+    guideSvg.style.opacity = '0';
+    cursor.classList.remove('on-node');
+  });
+}());
+
+/* ============================================================
    Navbar
    ============================================================ */
 const navbar    = document.getElementById('navbar');

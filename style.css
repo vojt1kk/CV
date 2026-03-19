@@ -34,6 +34,48 @@
 
 html { scroll-behavior: smooth; font-size: 16px; }
 
+/* Hide system cursor on pointer devices where custom cursor is active */
+@media (hover: hover) and (pointer: fine) {
+  * { cursor: none !important; }
+}
+
+/* Custom cursor */
+#custom-cursor {
+  display: none;
+  position: fixed;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.65);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  transition: transform 0.12s ease;
+  will-change: left, top;
+}
+
+#custom-cursor.on-node {
+  transform: translate(-50%, -50%) scale(1.7);
+}
+
+@keyframes dashFlow {
+  to { stroke-dashoffset: 12; }
+}
+
+#cursor-guide {
+  position: fixed;
+  inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 9998;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+#guide-line {
+  animation: dashFlow 0.5s linear infinite;
+}
+
 body {
   background: var(--bg);
   color: var(--fg);
@@ -434,6 +476,7 @@ img { max-width: 100%; display: block; }
   will-change: transform, opacity;
 }
 
+
 .skill-node:hover  { border-color: #686868; box-shadow: 0 0 14px rgba(255, 255, 255, 0.08); }
 .skill-node:focus-visible { outline: 2px solid #686868; outline-offset: 3px; }
 .skill-node.active { border-color: #909090; box-shadow: 0 0 22px rgba(255, 255, 255, 0.14); }
@@ -500,9 +543,44 @@ img { max-width: 100%; display: block; }
 }
 
 /* Orbiting word labels */
-@keyframes orbitLabel {
-  from { transform: rotate(0deg)   translateX(64px) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(64px) rotate(-360deg); }
+
+/* Laravel — elipsa po směru (rx=72, ry=26) */
+@keyframes orbitCW {
+  0%    { transform: translate( 72px,    0px);   }
+  12.5% { transform: translate( 50.9px,  18.4px);}
+  25%   { transform: translate(  0px,   26px);   }
+  37.5% { transform: translate(-50.9px,  18.4px);}
+  50%   { transform: translate(-72px,    0px);   }
+  62.5% { transform: translate(-50.9px, -18.4px);}
+  75%   { transform: translate(  0px,  -26px);   }
+  87.5% { transform: translate( 50.9px, -18.4px);}
+  100%  { transform: translate( 72px,    0px);   }
+}
+
+/* .NET — elipsa proti směru (rx=68, ry=30) */
+@keyframes orbitCCW {
+  0%    { transform: translate( 68px,    0px);   }
+  12.5% { transform: translate( 48.1px, -21.2px);}
+  25%   { transform: translate(  0px,  -30px);   }
+  37.5% { transform: translate(-48.1px, -21.2px);}
+  50%   { transform: translate(-68px,    0px);   }
+  62.5% { transform: translate(-48.1px,  21.2px);}
+  75%   { transform: translate(  0px,   30px);   }
+  87.5% { transform: translate( 48.1px,  21.2px);}
+  100%  { transform: translate( 68px,    0px);   }
+}
+
+/* Tooling — plochá rychlá elipsa (rx=78, ry=18) */
+@keyframes orbitFlat {
+  0%    { transform: translate( 78px,    0px);   }
+  12.5% { transform: translate( 55.2px,  12.7px);}
+  25%   { transform: translate(  0px,   18px);   }
+  37.5% { transform: translate(-55.2px,  12.7px);}
+  50%   { transform: translate(-78px,    0px);   }
+  62.5% { transform: translate(-55.2px, -12.7px);}
+  75%   { transform: translate(  0px,  -18px);   }
+  87.5% { transform: translate( 55.2px, -12.7px);}
+  100%  { transform: translate( 78px,    0px);   }
 }
 
 .orbit-label {
@@ -517,9 +595,28 @@ img { max-width: 100%; display: block; }
   white-space: nowrap;
   pointer-events: none;
   transform-origin: 0 0;
-  animation: orbitLabel 18s linear infinite;
-  animation-delay: calc(var(--i) / var(--total) * -18s);
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
   transition: opacity 600ms ease;
+}
+
+.skill-node[data-dept="laravel"] .orbit-label {
+  --dur: 20s;
+  animation-name: orbitCW;
+  animation-duration: var(--dur);
+  animation-delay: calc(var(--i) / var(--total) * -1 * var(--dur));
+}
+.skill-node[data-dept="dotnet"] .orbit-label {
+  --dur: 24s;
+  animation-name: orbitCCW;
+  animation-duration: var(--dur);
+  animation-delay: calc(var(--i) / var(--total) * -1 * var(--dur));
+}
+.skill-node[data-dept="tooling"] .orbit-label {
+  --dur: 14s;
+  animation-name: orbitFlat;
+  animation-duration: var(--dur);
+  animation-delay: calc(var(--i) / var(--total) * -1 * var(--dur));
 }
 
 .skill-node.inactive .orbit-label { opacity: 0; }
