@@ -424,10 +424,13 @@ function positionNodes() {
    ============================================================ */
 function applyZoom(deptId) {
   const { nx, ny } = nodePositions[deptId];
-  const zoom = isMobile ? 1.8 : 2.2;
-  scene.style.transform = `translate(${-nx * zoom}px, ${-ny * zoom}px) scale(${zoom})`;
-  // Subtle parallax on stars
-  starsCanvas.style.transform = `translate(${nx * 0.15}px, ${ny * 0.15}px)`;
+  const zoom = isMobile ? 1.6 : 2.0;
+  // Shift node to opposite side so panel has room
+  // nx < 0 = left node → shift right, panel on left
+  // nx >= 0 = right node → shift left, panel on right
+  const sideShift = isMobile ? 0 : (nx < 0 ? starsW * 0.18 : -starsW * 0.18);
+  scene.style.transform = `translate(${-nx * zoom + sideShift}px, ${-ny * zoom}px) scale(${zoom})`;
+  starsCanvas.style.transform = `translate(${nx * 0.12}px, ${ny * 0.12}px)`;
 }
 
 function resetZoom() {
@@ -481,21 +484,32 @@ function goOverview() {
   scene.querySelectorAll('.skill-node').forEach(el => {
     el.classList.remove('active', 'inactive');
   });
-  document.getElementById('skills-split').classList.remove('detail');
+  skillWrap.classList.remove('detail-left', 'detail-right', 'active');
   updateHint();
 }
 
 function goDetail(deptId) {
   treeState  = 'detail';
   activeDept = deptId;
-  applyZoom(deptId);
+
+  const { nx } = nodePositions[deptId];
+  const side = nx < 0 ? 'detail-left' : 'detail-right';
+
+  // Update node classes
   scene.querySelectorAll('.skill-node').forEach(el => {
     const isActive = el.dataset.dept === deptId;
     el.classList.toggle('active',   isActive);
     el.classList.toggle('inactive', !isActive);
   });
+
+  // Set side class, then animate in
+  skillWrap.classList.remove('detail-left', 'detail-right', 'active');
+  skillWrap.classList.add(side);
   showExp(deptId);
-  document.getElementById('skills-split').classList.add('detail');
+  applyZoom(deptId);
+  // Small delay so CSS transition picks up the change
+  requestAnimationFrame(() => skillWrap.classList.add('active'));
+
   updateHint();
 }
 
@@ -527,9 +541,6 @@ function initSkillEvents() {
   });
 }
 
-skillWrap.addEventListener('transitionend', e => {
-  if (e.propertyName === 'width') positionNodes();
-});
 
 backBtn.addEventListener('click', () => goOverview());
 
