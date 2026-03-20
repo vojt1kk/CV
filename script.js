@@ -722,18 +722,23 @@ backBtn.addEventListener('click', () => goOverview());
       const st = gravState[dept];
       let targetScale = 1, targetTx = 0, targetTy = 0;
 
-      if (inSkills && treeState === 'overview') {
+      if (inSkills) {
         const d = Math.hypot(cx - mx, cy - my);
-        if (d < GRAV_RADIUS && d > 1) {
-          // inverse-ish falloff: stronger as you get closer
+        const isActive = treeState === 'detail' && activeDept === dept;
+
+        if (treeState === 'overview' && d < GRAV_RADIUS && d > 1) {
           const proximity = 1 - d / GRAV_RADIUS;
-          const ease = proximity * proximity;           // quadratic
+          const ease = proximity * proximity;
 
           targetScale = 1 + ease * (GRAV_MAX_SCALE - 1);
 
           const pull = ease * GRAV_MAX_PULL;
           targetTx = ((mx - cx) / d) * pull;
           targetTy = ((my - cy) / d) * pull;
+        } else if (isActive && d < GRAV_RADIUS && d > 1) {
+          const proximity = 1 - d / GRAV_RADIUS;
+          const ease = proximity * proximity;
+          targetScale = 1 + ease * 0.12;
         }
       }
 
