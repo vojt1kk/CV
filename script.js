@@ -5,7 +5,6 @@ const translations = {
   cs: {
     'nav.about':    'O mně',
     'nav.skills':   'Dovednosti',
-    'nav.projects': 'Projekty',
     'nav.contact':  'Kontakt',
 
     'hero.role': 'Junior Backend Developer',
@@ -25,15 +24,6 @@ const translations = {
     'skills.heading': 'Stack & technologie.',
     'skills.hint':    'Klikni na oblast pro detail',
     'skills.back':    'Přehled',
-
-    'projects.heading':   'Vybrané práce.',
-    'projects.link-code': 'Kód ↗',
-    'projects.p1-title':  'Laravel REST API',
-    'projects.p1-desc':   'RESTful API postavené na Laravel s Eloquent ORM, autentizací přes Sanctum a automatickými testy pomocí PHPUnit.',
-    'projects.p2-title':  'Laravel CMS',
-    'projects.p2-desc':   'Redakční systém s Blade šablonami, administračním panelem a správou médií pomocí Laravel Filesystems.',
-    'projects.p3-title':  '.NET Web API',
-    'projects.p3-desc':   'ASP.NET Core Web API s Entity Framework Core, JWT autentizací a Swagger dokumentací.',
 
     'contact.heading': 'Pojďme\nspolupracovat.',
     'contact.sub':     'Hledáš backend developera nebo chceš spolupracovat na projektu? Napiš mi.',
@@ -68,7 +58,6 @@ const translations = {
   en: {
     'nav.about':    'About',
     'nav.skills':   'Skills',
-    'nav.projects': 'Projects',
     'nav.contact':  'Contact',
 
     'hero.role': 'Junior Backend Developer',
@@ -89,14 +78,7 @@ const translations = {
     'skills.hint':    'Click a section for details',
     'skills.back':    'Overview',
 
-    'projects.heading':   'Selected work.',
-    'projects.link-code': 'Code ↗',
-    'projects.p1-title':  'Laravel REST API',
-    'projects.p1-desc':   'RESTful API built with Laravel featuring Eloquent ORM, Sanctum authentication and automated PHPUnit tests.',
-    'projects.p2-title':  'Laravel CMS',
-    'projects.p2-desc':   'Content management system using Blade templates, an admin panel and media management via Laravel Filesystems.',
-    'projects.p3-title':  '.NET Web API',
-    'projects.p3-desc':   'ASP.NET Core Web API with Entity Framework Core, JWT authentication and Swagger documentation.',
+
 
     'contact.heading': 'Let\'s work\ntogether.',
     'contact.sub':     'Looking for a backend developer or want to collaborate on a project? Drop me a line.',

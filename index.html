@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vojtěch Kocourek — Backend Developer</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
   <meta name="description" content="Portfolio Vojtěcha Kocourka — backend developer specializující se na PHP/Laravel a C#/.NET" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=JetBrains+Mono:wght@300;400&display=swap" />
@@ -19,7 +21,7 @@
       <nav class="navbar__nav" id="main-nav">
         <a href="#about"    data-i18n="nav.about">O mně</a>
         <a href="#skills"   data-i18n="nav.skills">Dovednosti</a>
-        <a href="#projects" data-i18n="nav.projects">Projekty</a>
+
         <a href="#contact"  data-i18n="nav.contact">Kontakt</a>
       </nav>
 
@@ -67,10 +69,10 @@
   <hr class="divider" />
 
   <!-- ===== ABOUT ===== -->
-  <section class="about reveal" id="about">
+  <section class="about" id="about">
     <div class="container">
 
-      <div class="section-head">
+      <div class="section-head reveal">
         <span class="eyebrow" data-i18n="nav.about">O mně</span>
         <h2 class="section-title" data-i18n="about.heading">
           Kód, který obstojí v čase.
@@ -78,7 +80,7 @@
       </div>
 
       <div class="about__split">
-        <div class="about__bio">
+        <div class="about__bio reveal" data-delay="1">
           <p class="about__bio-lead" data-i18n="about.p1">
             Jsem backend developer se zaměřením na PHP/Laravel a C#/.NET. Rád navrhuju
             čistá API, pracuju s relačními databázemi a automatizuju rutinní úkoly
@@ -94,17 +96,17 @@
           </p>
         </div>
 
-        <aside class="about__info">
-          <div class="about__info-block">
-            <p class="about__info-label" data-i18n="about.key-name">Jméno</p>
-            <p class="about__info-value">Vojtěch Kocourek</p>
+        <aside class="about__info reveal" data-delay="2">
+          <div class="about__info-row">
+            <span class="about__info-label" data-i18n="about.key-name">Jméno</span>
+            <span class="about__info-value">Vojtěch Kocourek</span>
           </div>
-          <div class="about__info-block">
-            <p class="about__info-label" data-i18n="about.key-role">Role</p>
-            <p class="about__info-value" data-i18n="about.val-role">Junior Backend Developer</p>
+          <div class="about__info-row">
+            <span class="about__info-label" data-i18n="about.key-role">Role</span>
+            <span class="about__info-value" data-i18n="about.val-role">Junior Backend Developer</span>
           </div>
-          <div class="about__info-block">
-            <p class="about__info-label" data-i18n="about.key-focus">Zaměření</p>
+          <div class="about__info-row">
+            <span class="about__info-label" data-i18n="about.key-focus">Zaměření</span>
             <div class="about__info-tags">
               <span class="tag">PHP</span>
               <span class="tag">Laravel</span>
@@ -112,13 +114,13 @@
               <span class="tag">.NET</span>
             </div>
           </div>
-          <div class="about__info-block">
-            <p class="about__info-label" data-i18n="about.key-location">Lokace</p>
-            <p class="about__info-value">Praha, CZ</p>
+          <div class="about__info-row">
+            <span class="about__info-label" data-i18n="about.key-location">Lokace</span>
+            <span class="about__info-value">Praha, CZ</span>
           </div>
-          <div class="about__info-block">
-            <p class="about__info-label" data-i18n="about.key-status">Status</p>
-            <p class="about__info-value" data-i18n="about.val-status">Dostupný</p>
+          <div class="about__info-row">
+            <span class="about__info-label" data-i18n="about.key-status">Status</span>
+            <span class="about__info-value" data-i18n="about.val-status">Dostupný</span>
           </div>
         </aside>
       </div>
@@ -181,82 +183,6 @@
       Klikni na oblast pro detail
     </p>
 
-  </section>
-
-  <hr class="divider" />
-
-  <!-- ===== PROJECTS ===== -->
-  <section class="projects reveal" id="projects">
-    <div class="container">
-
-      <div class="section-head">
-        <span class="eyebrow" data-i18n="nav.projects">Projekty</span>
-        <h2 class="section-title" data-i18n="projects.heading">
-          Vybrané práce.
-        </h2>
-      </div>
-
-      <div class="projects__grid">
-
-        <article class="project-card">
-          <p class="project-card__num">01</p>
-          <h3 class="project-card__title" data-i18n="projects.p1-title">Laravel REST API</h3>
-          <p class="project-card__desc" data-i18n="projects.p1-desc">
-            RESTful API postavené na Laravel s Eloquent ORM, autentizací přes Sanctum
-            a automatickými testy pomocí PHPUnit.
-          </p>
-          <div class="project-card__footer">
-            <div class="project-card__tags">
-              <span class="tag">Laravel</span>
-              <span class="tag">PHP</span>
-              <span class="tag">MySQL</span>
-            </div>
-            <div class="project-card__links">
-              <a href="#" class="project-card__link" data-i18n="projects.link-code">Kód ↗</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="project-card">
-          <p class="project-card__num">02</p>
-          <h3 class="project-card__title" data-i18n="projects.p2-title">Laravel CMS</h3>
-          <p class="project-card__desc" data-i18n="projects.p2-desc">
-            Redakční systém s Blade šablonami, administračním panelem
-            a správou médií pomocí Laravel Filesystems.
-          </p>
-          <div class="project-card__footer">
-            <div class="project-card__tags">
-              <span class="tag">Laravel</span>
-              <span class="tag">Blade</span>
-              <span class="tag">PostgreSQL</span>
-            </div>
-            <div class="project-card__links">
-              <a href="#" class="project-card__link" data-i18n="projects.link-code">Kód ↗</a>
-            </div>
-          </div>
-        </article>
-
-        <article class="project-card">
-          <p class="project-card__num">03</p>
-          <h3 class="project-card__title" data-i18n="projects.p3-title">.NET Web API</h3>
-          <p class="project-card__desc" data-i18n="projects.p3-desc">
-            ASP.NET Core Web API s Entity Framework Core, JWT autentizací
-            a Swagger dokumentací.
-          </p>
-          <div class="project-card__footer">
-            <div class="project-card__tags">
-              <span class="tag">.NET</span>
-              <span class="tag">C#</span>
-              <span class="tag">REST</span>
-            </div>
-            <div class="project-card__links">
-              <a href="#" class="project-card__link" data-i18n="projects.link-code">Kód ↗</a>
-            </div>
-          </div>
-        </article>
-
-      </div>
-    </div>
   </section>
 
   <hr class="divider" />
