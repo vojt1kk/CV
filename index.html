@@ -295,7 +295,19 @@
         </div>
         <div class="ide__run-panel" id="ide-run-panel">
           <div class="ide__run-panel-header">
-            <span class="ide__run-panel-tab">▶ Run</span>
+            <button class="ide__run-panel-tab active">
+              <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" aria-hidden="true">
+                <path d="M0.5 0.5v9l7-4.5z"/>
+              </svg>
+              Run
+            </button>
+            <button class="ide__run-panel-tab" disabled>Terminal</button>
+            <button class="ide__run-panel-tab" disabled>Problems</button>
+            <button class="ide__run-panel-minimize" id="ide-run-minimize" aria-label="Minimalizovat">
+              <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <path d="M0 1h10"/>
+              </svg>
+            </button>
           </div>
           <div class="ide__run-panel-output" id="ide-run-output"></div>
         </div>

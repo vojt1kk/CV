@@ -1150,16 +1150,50 @@ img { max-width: 100%; display: block; }
 
 .ide__run-panel-header {
   display: flex;
+  gap: 0.35rem;
   padding: 0.3rem 0.5rem;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .ide__run-panel-tab {
-  font-size: 0.65rem;
-  color: var(--fg-2);
-  padding: 0.2rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.62rem;
+  font-family: inherit;
+  color: var(--fg-4);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  cursor: default;
+  white-space: nowrap;
 }
+
+.ide__run-panel-tab.active {
+  color: var(--fg-2);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-2);
+}
+
+.ide__run-panel-tab svg { opacity: 0.7; }
+
+.ide__run-panel-minimize {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: none;
+  border: none;
+  color: var(--fg-4);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.ide__run-panel-minimize:hover { color: var(--fg-2); }
 
 .ide__run-panel-output {
   flex: 1;

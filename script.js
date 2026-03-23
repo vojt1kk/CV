@@ -731,7 +731,194 @@ class UserObserver
     }
 }` },
   ],
+  dotnet: [
+    { name: 'UsersController.cs', code: `using Microsoft.AspNetCore.Mvc;
+using MyApp.Services;
+using MyApp.Models;
+
+namespace MyApp.Controllers;
+
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+
+    public UsersController(IUserService userService)
+    {
+        _userService = userService;
+    }
+
+    // GET /api/users
+    [HttpGet]
+    public async Task<IActionResult> GetAll(
+        [FromQuery] string? search,
+        [FromQuery] int perPage = 15)
+    {
+        var users = await _userService
+            .GetFilteredAsync(search, perPage);
+
+        return Ok(users);
+    }
+
+    // POST /api/users
+    [HttpPost]
+    public async Task<IActionResult> Create(
+        [FromBody] CreateUserDto dto)
+    {
+        var user = await _userService.CreateAsync(dto);
+
+        return CreatedAtAction(
+            nameof(GetAll), new { id = user.Id }, user);
+    }
+}` },
+    { name: 'UserService.cs', code: `using Microsoft.EntityFrameworkCore;
+using MyApp.Data;
+using MyApp.Models;
+
+namespace MyApp.Services;
+
+public class UserService : IUserService
+{
+    private readonly AppDbContext _db;
+
+    public UserService(AppDbContext db)
+    {
+        _db = db;
+    }
+
+    public async Task<List<UserDto>> GetFilteredAsync(
+        string? search, int perPage)
+    {
+        var query = _db.Users.AsQueryable();
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(u =>
+                u.Name.Contains(search) ||
+                u.Email.Contains(search));
+        }
+
+        return await query
+            .Take(perPage)
+            .Select(u => new UserDto(u.Id, u.Name, u.Email))
+            .ToListAsync();
+    }
+
+    public async Task<UserDto> CreateAsync(CreateUserDto dto)
+    {
+        var user = new User
+        {
+            Name = dto.Name,
+            Email = dto.Email,
+            Role = dto.Role ?? "viewer"
+        };
+
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync();
+
+        return new UserDto(user.Id, user.Name, user.Email);
+    }
+}` },
+    { name: 'User.cs', code: `using System.ComponentModel.DataAnnotations;
+
+namespace MyApp.Models;
+
+public class User
+{
+    public int Id { get; set; }
+
+    [Required]
+    [MaxLength(255)]
+    public string Name { get; set; } = string.Empty;
+
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+
+    [MaxLength(50)]
+    public string Role { get; set; } = "viewer";
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public record UserDto(int Id, string Name, string Email);
+
+public record CreateUserDto(
+    string Name,
+    string Email,
+    string? Role);` },
+  ],
 };
+
+const IDE_TITLES = {
+  laravel: 'PhpStorm — laravel-app',
+  dotnet:  'Rider — dotnet-api',
+};
+
+const RUN_DATA = {
+  laravel: [
+    { text: '$ php artisan serve', delay: 0, cls: 'run-cmd' },
+    { text: 'Starting Laravel development server: http://127.0.0.1:8000', delay: 500 },
+    { text: '', delay: 300 },
+    { text: '[200] GET /api/users .............. 43ms', delay: 700, cls: 'run-ok' },
+    { text: '{', delay: 200 },
+    { text: '  "data": [', delay: 80 },
+    { text: '    { "id": 1, "name": "Jan Novák", "email": "jan@example.com" },', delay: 80 },
+    { text: '    { "id": 2, "name": "Eva Černá", "email": "eva@example.com" }', delay: 80 },
+    { text: '  ],', delay: 80 },
+    { text: '  "per_page": 15,', delay: 80 },
+    { text: '  "total": 2', delay: 80 },
+    { text: '}', delay: 80 },
+    { text: '', delay: 400 },
+    { text: '$ php artisan users:sync', delay: 500, cls: 'run-cmd' },
+    { text: 'Fetching users from external API...', delay: 600 },
+    { text: '  [SYNC] jan@example.com — updated', delay: 350 },
+    { text: '  [SYNC] eva@example.com — updated', delay: 350 },
+    { text: '  [NEW]  petr@example.com — created', delay: 350 },
+    { text: 'Synced 3 users.', delay: 400, cls: 'run-ok' },
+    { text: '', delay: 300 },
+    { text: 'Process finished with exit code 0', delay: 400, cls: 'run-dim' },
+  ],
+  dotnet: [
+    { text: '$ dotnet run', delay: 0, cls: 'run-cmd' },
+    { text: 'Building...', delay: 400 },
+    { text: 'Now listening on: https://localhost:5001', delay: 600, cls: 'run-ok' },
+    { text: '', delay: 300 },
+    { text: '[200] GET /api/users .............. 28ms', delay: 700, cls: 'run-ok' },
+    { text: '[', delay: 200 },
+    { text: '  { "id": 1, "name": "Jan Novák", "email": "jan@example.com" },', delay: 80 },
+    { text: '  { "id": 2, "name": "Eva Černá", "email": "eva@example.com" }', delay: 80 },
+    { text: ']', delay: 80 },
+    { text: '', delay: 400 },
+    { text: '[201] POST /api/users ............. 35ms', delay: 600, cls: 'run-ok' },
+    { text: '{ "id": 3, "name": "Petr Svoboda", "email": "petr@example.com" }', delay: 200 },
+    { text: '', delay: 300 },
+    { text: 'Application is shutting down...', delay: 500 },
+    { text: 'Process finished with exit code 0', delay: 400, cls: 'run-dim' },
+  ],
+};
+
+function highlightCSharp(code) {
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const KW = /^(using|namespace|public|private|protected|internal|static|readonly|abstract|sealed|override|virtual|async|await|class|record|struct|interface|enum|new|return|if|else|foreach|var|string|int|bool|void|null|get|set|nameof)$/;
+  const TOKEN = /(\/\/.*$|\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*")|(\b\w+\b)/gm;
+
+  let result = '';
+  let last = 0;
+  let m;
+
+  while ((m = TOKEN.exec(code)) !== null) {
+    result += esc(code.slice(last, m.index));
+    if (m[1])      result += '<span class="cmt">' + esc(m[1]) + '</span>';
+    else if (m[2]) result += '<span class="str">' + esc(m[2]) + '</span>';
+    else if (m[3] && KW.test(m[3])) result += '<span class="kw">' + esc(m[3]) + '</span>';
+    else           result += esc(m[0]);
+    last = m.index + m[0].length;
+  }
+  result += esc(code.slice(last));
+  return result;
+}
 
 function highlightPHP(code) {
   const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -755,10 +942,13 @@ function highlightPHP(code) {
   return result;
 }
 
+let currentDept = null;
+
 function showFile(file) {
   const lines = file.code.split('\n');
   ideLines.innerHTML = lines.map((_, i) => (i + 1)).join('\n');
-  ideCode.innerHTML = highlightPHP(file.code) + '<span class="ide__cursor"></span>';
+  const highlight = currentDept === 'dotnet' ? highlightCSharp : highlightPHP;
+  ideCode.innerHTML = highlight(file.code) + '<span class="ide__cursor"></span>';
 }
 
 function switchTab(deptId, index) {
@@ -773,6 +963,14 @@ function switchTab(deptId, index) {
 function renderIDE(deptId) {
   const files = IDE_FILES[deptId];
   if (!files) return;
+  currentDept = deptId;
+
+  // Update titlebar
+  const titleEl = document.querySelector('.ide__title');
+  if (titleEl) titleEl.textContent = IDE_TITLES[deptId] || 'IDE';
+
+  // Tab icon letter
+  const iconLetter = deptId === 'dotnet' ? 'C' : 'C';
 
   ideTabs.innerHTML = '';
   files.forEach((file, i) => {
@@ -780,7 +978,7 @@ function renderIDE(deptId) {
     btn.className = 'ide__tab' + (i === 0 ? ' active' : '');
     btn.innerHTML = '<svg class="ide__tab-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">'
       + '<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/>'
-      + '<text x="8" y="11.5" text-anchor="middle" fill="currentColor" font-size="10" font-family="inherit" font-weight="600">C</text>'
+      + '<text x="8" y="11.5" text-anchor="middle" fill="currentColor" font-size="10" font-family="inherit" font-weight="600">' + iconLetter + '</text>'
       + '</svg>' + file.name;
     btn.addEventListener('click', () => switchTab(deptId, i));
     ideTabs.appendChild(btn);
@@ -822,37 +1020,14 @@ const runPlayBtn = document.getElementById('ide-run-play');
 let runTimers = [];
 let runActive = false;
 
-const RUN_LINES = [
-  { text: '$ php artisan serve', delay: 0, cls: 'run-cmd' },
-  { text: 'Starting Laravel development server: http://127.0.0.1:8000', delay: 500 },
-  { text: '', delay: 300 },
-  { text: '[200] GET /api/users .............. 43ms', delay: 700, cls: 'run-ok' },
-  { text: '{', delay: 200 },
-  { text: '  "data": [', delay: 80 },
-  { text: '    { "id": 1, "name": "Jan Novák", "email": "jan@example.com" },', delay: 80 },
-  { text: '    { "id": 2, "name": "Eva Černá", "email": "eva@example.com" }', delay: 80 },
-  { text: '  ],', delay: 80 },
-  { text: '  "per_page": 15,', delay: 80 },
-  { text: '  "total": 2', delay: 80 },
-  { text: '}', delay: 80 },
-  { text: '', delay: 400 },
-  { text: '$ php artisan users:sync', delay: 500, cls: 'run-cmd' },
-  { text: 'Fetching users from external API...', delay: 600 },
-  { text: '  [SYNC] jan@example.com — updated', delay: 350 },
-  { text: '  [SYNC] eva@example.com — updated', delay: 350 },
-  { text: '  [NEW]  petr@example.com — created', delay: 350 },
-  { text: 'Synced 3 users.', delay: 400, cls: 'run-ok' },
-  { text: '', delay: 300 },
-  { text: 'Process finished with exit code 0', delay: 400, cls: 'run-dim' },
-];
-
 function runDemo() {
+  const lines = RUN_DATA[currentDept] || RUN_DATA.laravel;
   runActive = true;
   runOutput.innerHTML = '';
   runPanel.classList.add('open');
 
   let cumulative = 0;
-  RUN_LINES.forEach((line, i) => {
+  lines.forEach((line, i) => {
     cumulative += line.delay;
     const timer = setTimeout(() => {
       const el = document.createElement('div');
@@ -874,8 +1049,12 @@ function resetRun() {
 }
 
 runPlayBtn.addEventListener('click', () => {
-  if (runActive) resetRun();
-  else runDemo();
+  resetRun();
+  runDemo();
+});
+
+document.getElementById('ide-run-minimize').addEventListener('click', () => {
+  resetRun();
 });
 
 demoBtn.addEventListener('click', () => {
