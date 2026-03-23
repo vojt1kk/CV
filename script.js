@@ -308,6 +308,7 @@ const EXPERIENCE = {
   },
 };
 
+
 /* ============================================================
    DOM Skill Tree — State & Refs
    ============================================================ */
@@ -518,6 +519,7 @@ function triggerZoomEffects() {
 }
 
 function goOverview() {
+  closeDemo();
   treeState  = 'overview';
   activeDept = null;
   triggerZoomEffects();
@@ -588,6 +590,257 @@ function initSkillEvents() {
 
 
 backBtn.addEventListener('click', () => goOverview());
+
+/* ============================================================
+   Demo Overlay (IDE Mockup)
+   ============================================================ */
+const demoOverlay  = document.getElementById('video-overlay');
+const demoCloseBtn = document.getElementById('video-overlay-close');
+const demoBdrop    = document.getElementById('video-overlay-backdrop');
+const demoBtn      = document.getElementById('skills-demo-btn');
+const demoCardEl   = demoOverlay.querySelector('.video-overlay__card');
+
+const ideTabs  = document.getElementById('ide-tabs');
+const ideLines = document.getElementById('ide-lines');
+const ideCode  = document.getElementById('ide-code');
+
+let demoOpen = false;
+
+// Placeholder code — uživatel dodá reálný kód později
+const IDE_FILES = {
+  laravel: [
+    { name: 'UserController.php', code: `<?php
+
+namespace App\\Http\\Controllers;
+
+use App\\Models\\User;
+use App\\Services\\UserService;
+use Illuminate\\Http\\JsonResponse;
+use Illuminate\\Http\\Request;
+
+class UserController extends Controller
+{
+    public function __construct(
+        private readonly UserService $userService
+    ) {}
+
+    // GET /api/users
+    public function index(Request $request): JsonResponse
+    {
+        $users = $this->userService->getFiltered(
+            $request->query('search'),
+            $request->integer('per_page', 15)
+        );
+
+        return response()->json($users);
+    }
+
+    // POST /api/users
+    public function store(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'role'  => 'in:admin,editor,viewer',
+        ]);
+
+        $user = $this->userService->create($validated);
+
+        return response()->json($user, 201);
+    }
+}` },
+    { name: 'SyncUsersCommand.php', code: `<?php
+
+namespace App\\Console\\Commands;
+
+use App\\Models\\User;
+use App\\Services\\ExternalApiService;
+use Illuminate\\Console\\Command;
+
+class SyncUsersCommand extends Command
+{
+    protected $signature = 'users:sync
+                            {--dry-run : Preview without saving}';
+
+    protected $description = 'Sync users from external API';
+
+    public function handle(ExternalApiService $api): int
+    {
+        $this->info('Fetching users from API...');
+
+        $external = $api->fetchUsers();
+        $synced   = 0;
+
+        foreach ($external as $data) {
+            if ($this->option('dry-run')) {
+                $this->line("  [DRY] {$data['email']}");
+                continue;
+            }
+
+            User::updateOrCreate(
+                ['external_id' => $data['id']],
+                [
+                    'name'  => $data['name'],
+                    'email' => $data['email'],
+                ]
+            );
+
+            $synced++;
+        }
+
+        $this->info("Synced {$synced} users.");
+
+        return self::SUCCESS;
+    }
+}` },
+    { name: 'UserObserver.php', code: `<?php
+
+namespace App\\Observers;
+
+use App\\Models\\User;
+use App\\Notifications\\WelcomeNotification;
+use Illuminate\\Support\\Facades\\Cache;
+use Illuminate\\Support\\Facades\\Log;
+
+class UserObserver
+{
+    public function created(User $user): void
+    {
+        // Send welcome email
+        $user->notify(new WelcomeNotification());
+
+        Log::info('User created', [
+            'id'    => $user->id,
+            'email' => $user->email,
+        ]);
+    }
+
+    public function updated(User $user): void
+    {
+        // Invalidate cache on profile change
+        if ($user->isDirty(['name', 'email', 'role'])) {
+            Cache::forget("user:{$user->id}:profile");
+        }
+    }
+
+    public function deleted(User $user): void
+    {
+        Cache::forget("user:{$user->id}:profile");
+
+        Log::info('User deleted', ['id' => $user->id]);
+    }
+}` },
+  ],
+};
+
+function highlightPHP(code) {
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const KW = /^(class|function|return|use|public|private|protected|static|new|if|else|foreach|namespace|extends|implements|throw|try|catch|finally|yield|match|fn|readonly|abstract|interface|trait|enum|void|int|string|array|bool)$/;
+  const TOKEN = /(\/\/.*$|\/\*[\s\S]*?\*\/)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\$\w+)|(\b\w+\b)/gm;
+
+  let result = '';
+  let last = 0;
+  let m;
+
+  while ((m = TOKEN.exec(code)) !== null) {
+    result += esc(code.slice(last, m.index));
+    if (m[1])      result += '<span class="cmt">' + esc(m[1]) + '</span>';
+    else if (m[2]) result += '<span class="str">' + esc(m[2]) + '</span>';
+    else if (m[3]) result += '<span class="var">' + esc(m[3]) + '</span>';
+    else if (m[4] && KW.test(m[4])) result += '<span class="kw">' + esc(m[4]) + '</span>';
+    else           result += esc(m[0]);
+    last = m.index + m[0].length;
+  }
+  result += esc(code.slice(last));
+  return result;
+}
+
+function showFile(file) {
+  const lines = file.code.split('\n');
+  ideLines.innerHTML = lines.map((_, i) => (i + 1)).join('\n');
+  ideCode.innerHTML = highlightPHP(file.code) + '<span class="ide__cursor"></span>';
+}
+
+function switchTab(deptId, index) {
+  const files = IDE_FILES[deptId];
+  if (!files) return;
+  ideTabs.querySelectorAll('.ide__tab').forEach((t, i) => {
+    t.classList.toggle('active', i === index);
+  });
+  showFile(files[index]);
+}
+
+function renderIDE(deptId) {
+  const files = IDE_FILES[deptId];
+  if (!files) return;
+
+  ideTabs.innerHTML = '';
+  files.forEach((file, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'ide__tab' + (i === 0 ? ' active' : '');
+    btn.innerHTML = '<svg class="ide__tab-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">'
+      + '<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/>'
+      + '<text x="8" y="11.5" text-anchor="middle" fill="currentColor" font-size="10" font-family="inherit" font-weight="600">C</text>'
+      + '</svg>' + file.name;
+    btn.addEventListener('click', () => switchTab(deptId, i));
+    ideTabs.appendChild(btn);
+  });
+
+  showFile(files[0]);
+}
+
+function openDemo(deptId) {
+  if (!IDE_FILES[deptId]) return;
+  demoOpen = true;
+  document.body.style.overflow = 'hidden';
+  renderIDE(deptId);
+  demoOverlay.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => {
+    demoOverlay.classList.add('open');
+    demoOverlay.addEventListener('transitionend', function onOpen(e) {
+      if (e.target !== demoOverlay) return;
+      demoOverlay.removeEventListener('transitionend', onOpen);
+      demoCloseBtn.focus();
+    });
+  });
+}
+
+function closeDemo() {
+  if (!demoOpen) return;
+  demoOpen = false;
+  document.body.style.overflow = '';
+  demoOverlay.classList.remove('open');
+  demoOverlay.setAttribute('aria-hidden', 'true');
+  if (demoBtn) demoBtn.focus();
+}
+
+demoBtn.addEventListener('click', () => {
+  if (activeDept) openDemo(activeDept);
+});
+
+demoCloseBtn.addEventListener('click', () => closeDemo());
+demoBdrop.addEventListener('click', () => closeDemo());
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && demoOpen) {
+    e.preventDefault();
+    closeDemo();
+  }
+});
+
+demoCardEl.addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const focusable = demoCardEl.querySelectorAll('button');
+  const first = focusable[0];
+  const last  = focusable[focusable.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+});
 
 /* ============================================================
    Custom Cursor + Guide Line
