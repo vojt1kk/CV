@@ -808,11 +808,75 @@ function openDemo(deptId) {
 function closeDemo() {
   if (!demoOpen) return;
   demoOpen = false;
+  resetRun();
   document.body.style.overflow = '';
   demoOverlay.classList.remove('open');
   demoOverlay.setAttribute('aria-hidden', 'true');
   if (demoBtn) demoBtn.focus();
 }
+
+// Run panel
+const runPanel  = document.getElementById('ide-run-panel');
+const runOutput = document.getElementById('ide-run-output');
+const runPlayBtn = document.getElementById('ide-run-play');
+let runTimers = [];
+let runActive = false;
+
+const RUN_LINES = [
+  { text: '$ php artisan serve', delay: 0, cls: 'run-cmd' },
+  { text: 'Starting Laravel development server: http://127.0.0.1:8000', delay: 500 },
+  { text: '', delay: 300 },
+  { text: '[200] GET /api/users .............. 43ms', delay: 700, cls: 'run-ok' },
+  { text: '{', delay: 200 },
+  { text: '  "data": [', delay: 80 },
+  { text: '    { "id": 1, "name": "Jan Novák", "email": "jan@example.com" },', delay: 80 },
+  { text: '    { "id": 2, "name": "Eva Černá", "email": "eva@example.com" }', delay: 80 },
+  { text: '  ],', delay: 80 },
+  { text: '  "per_page": 15,', delay: 80 },
+  { text: '  "total": 2', delay: 80 },
+  { text: '}', delay: 80 },
+  { text: '', delay: 400 },
+  { text: '$ php artisan users:sync', delay: 500, cls: 'run-cmd' },
+  { text: 'Fetching users from external API...', delay: 600 },
+  { text: '  [SYNC] jan@example.com — updated', delay: 350 },
+  { text: '  [SYNC] eva@example.com — updated', delay: 350 },
+  { text: '  [NEW]  petr@example.com — created', delay: 350 },
+  { text: 'Synced 3 users.', delay: 400, cls: 'run-ok' },
+  { text: '', delay: 300 },
+  { text: 'Process finished with exit code 0', delay: 400, cls: 'run-dim' },
+];
+
+function runDemo() {
+  runActive = true;
+  runOutput.innerHTML = '';
+  runPanel.classList.add('open');
+
+  let cumulative = 0;
+  RUN_LINES.forEach((line, i) => {
+    cumulative += line.delay;
+    const timer = setTimeout(() => {
+      const el = document.createElement('div');
+      if (line.cls) el.className = line.cls;
+      el.textContent = line.text;
+      runOutput.appendChild(el);
+      runOutput.scrollTop = runOutput.scrollHeight;
+    }, cumulative);
+    runTimers.push(timer);
+  });
+}
+
+function resetRun() {
+  runTimers.forEach(t => clearTimeout(t));
+  runTimers = [];
+  runActive = false;
+  runPanel.classList.remove('open');
+  runOutput.innerHTML = '';
+}
+
+runPlayBtn.addEventListener('click', () => {
+  if (runActive) resetRun();
+  else runDemo();
+});
 
 demoBtn.addEventListener('click', () => {
   if (activeDept) openDemo(activeDept);
