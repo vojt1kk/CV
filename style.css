@@ -539,11 +539,23 @@ img { max-width: 100%; display: block; }
    Skills — Canvas
    ============================================================ */
 .skills {
+  /* height driven by .skills__scroll-wrap */
+}
+
+.skills__scroll-wrap {
+  position: relative;
+  height: 300svh;
+}
+
+.skills__sticky {
+  position: sticky;
+  top: 0;
   height: 100svh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 2rem 0;
+  overflow: hidden;
 }
 
 .skills__canvas-wrap {
@@ -552,6 +564,8 @@ img { max-width: 100%; display: block; }
   user-select: none;
   -webkit-user-select: none;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 #stars-canvas {
@@ -567,8 +581,12 @@ img { max-width: 100%; display: block; }
   position: absolute;
   inset: 0;
   transform-origin: center center;
-  transition: transform 1300ms cubic-bezier(0.1, 1, 0.2, 1);
+  transition: transform 450ms cubic-bezier(0.25, 1, 0.5, 1);
   will-change: transform;
+}
+
+.scene.no-transition {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -613,6 +631,17 @@ img { max-width: 100%; display: block; }
 .skill-node:hover  { border-color: var(--border-4); box-shadow: 0 0 14px rgba(255, 255, 255, 0.08); }
 .skill-node:focus-visible { outline: 2px solid var(--border-4); outline-offset: 3px; }
 .skill-node.active { border-color: var(--border-5); box-shadow: 0 0 22px rgba(255, 255, 255, 0.14); }
+
+/* Smooth position animation during scroll-driven orbit rotation */
+.scene.orbit-rotating .skill-node {
+  transition: left 780ms cubic-bezier(0.4, 0, 0.6, 1),
+              top  780ms cubic-bezier(0.4, 0, 0.6, 1),
+              opacity 400ms cubic-bezier(0.4, 0, 0.2, 1),
+              filter  400ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 300ms ease,
+              box-shadow   300ms ease;
+}
+
 .skill-node.inactive {
   opacity: 0.25;
   filter: blur(1.5px);
@@ -770,20 +799,25 @@ img { max-width: 100%; display: block; }
 }
 
 .skill-node:hover  .node-icon { color: rgba(255,255,255,0.88); filter: drop-shadow(0 0 10px rgba(255,255,255,0.4)); }
-.skill-node.active .node-icon { color: rgba(255,255,255,0.97); filter: drop-shadow(0 0 14px rgba(255,255,255,0.6)); }
+.skill-node.active .node-icon { color: rgba(255,255,255,0.97); filter: drop-shadow(0 0 14px rgba(255,255,255,0.6)); animation: iconSwap 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+@keyframes iconSwap {
+  0%   { opacity: 0; transform: scale(0.72); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
 /* Experience panel — absolute overlay inside canvas-wrap */
 .skills__exp {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%) translateX(24px);
+  transform: translateY(calc(-50% + 28px));
   width: 28%;
   max-width: 380px;
   padding: 2rem 2rem 2rem 2rem;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.45s ease 0.25s,
-              transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+  transition: opacity 0.2s ease,
+              transform 0.26s cubic-bezier(0.22, 1, 0.36, 1);
   z-index: 10;
 }
 
@@ -791,28 +825,17 @@ img { max-width: 100%; display: block; }
 .skills__canvas-wrap.detail-right .skills__exp {
   left: 58%;
   right: auto;
-  transform: translateY(-50%) translateX(24px);
-  opacity: 0;
-  pointer-events: none;
-}
-
-.skills__canvas-wrap.detail-right.active .skills__exp {
-  transform: translateY(-50%) translateX(0);
-  opacity: 1;
-  pointer-events: auto;
 }
 
 /* Node on the left → panel on the left */
 .skills__canvas-wrap.detail-left .skills__exp {
   right: 58%;
   left: auto;
-  transform: translateY(-50%) translateX(-24px);
-  opacity: 0;
-  pointer-events: none;
 }
 
-.skills__canvas-wrap.detail-left.active .skills__exp {
-  transform: translateY(-50%) translateX(0);
+/* Active: slide up into position */
+.skills__canvas-wrap.active .skills__exp {
+  transform: translateY(-50%);
   opacity: 1;
   pointer-events: auto;
 }
@@ -1230,12 +1253,35 @@ img { max-width: 100%; display: block; }
   .video-overlay, .video-overlay__card { transition: none; }
 }
 
+.skills__dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 1.2rem;
+}
+
+.skills__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: background 0.35s ease, transform 0.35s ease;
+}
+
+.skills__dot.active {
+  background: rgba(255, 255, 255, 0.82);
+  transform: scale(1.4);
+}
+
 .skills__hint {
   text-align: center;
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   color: var(--fg-4);
-  margin-top: 1rem;
+  margin-top: 0.75rem;
   text-transform: uppercase;
   transition: opacity 0.3s;
 }

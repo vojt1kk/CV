@@ -329,6 +329,14 @@ let activeDept = null;
 // Node position offsets from scene center (for zoom math)
 let nodePositions = {}; // { deptId: { nx, ny } }
 
+// Scroll-driven orbit state
+let orbitOffset = 0;
+let orbitStep = 0;
+let isOrbitRotating = false;
+let skillsPanelShown = false;
+const ORBIT_SCROLL_ORDER = ['laravel', 'tooling', 'dotnet'];
+const ORBIT_ROTATION_MS = 480;
+
 // Stars
 let stars = [];
 let starsW = 0, starsH = 0;
@@ -356,17 +364,15 @@ function resizeStarsCanvas() {
   const dpr = window.devicePixelRatio || 1;
   starsW = skillWrap.clientWidth;
   isMobile = starsW < 600;
-  starsH = isMobile
-    ? Math.round(window.innerHeight * 0.72)
-    : Math.round(window.innerHeight * 0.76);
-  starsH = Math.max(starsH, isMobile ? 500 : 640);
+  // Let flex: 1 on canvas-wrap determine the height, read it from DOM
+  starsH = Math.max(skillWrap.clientHeight || (window.innerHeight - 240), isMobile ? 280 : 360);
 
   starsCanvas.width        = starsW * dpr;
   starsCanvas.height       = starsH * dpr;
   starsCanvas.style.width  = starsW + 'px';
   starsCanvas.style.height = starsH + 'px';
   starsCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  skillWrap.style.height = starsH + 'px';
+  // Do NOT set skillWrap.style.height — flex: 1 controls it
   generateStars();
 }
 
@@ -428,7 +434,7 @@ function positionNodes() {
     const deptId = el.dataset.dept;
     const dept   = DEPTS.find(d => d.id === deptId);
     if (!dept) return;
-    const pos = polar(cx, cy, R, dept.angle);
+    const pos = polar(cx, cy, R, dept.angle + orbitOffset);
     // nx/ny = offset from scene center (used for zoom transform)
     const nx = pos.x - cx;
     const ny = pos.y - cy;
@@ -534,9 +540,100 @@ function goOverview() {
   updateHint();
 }
 
+function initSkillsDetail() {
+  // Apply Laravel detail state immediately on init — overview is never shown
+  const deptId = 'laravel';
+  treeState   = 'detail';
+  activeDept  = deptId;
+  orbitStep   = 0;
+  orbitOffset = 0;
+
+  scene.querySelectorAll('.skill-node').forEach(el => {
+    const isActive = el.dataset.dept === deptId;
+    el.classList.toggle('active',   isActive);
+    el.classList.toggle('inactive', !isActive);
+  });
+
+  const { nx } = nodePositions[deptId];
+  const side = nx < 0 ? 'detail-left' : 'detail-right';
+  skillWrap.classList.remove('detail-left', 'detail-right', 'active');
+  skillWrap.classList.add(side);
+  showExp(deptId);
+  applyZoom(deptId);
+  updateDots();
+  // Panel (.active) is added later by scroll handler on first entry
+}
+
+function rotateToStep(step) {
+  if (isOrbitRotating) return;
+  isOrbitRotating = true;
+
+  const fromOffset = orbitOffset;
+  const toOffset   = step * 120;
+  const newDeptId  = ORBIT_SCROLL_ORDER[step];
+  orbitStep        = step;
+
+  // Ease in-out cubic — smooth acceleration + deceleration along arc
+  function ease(t) {
+    return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+  }
+
+  // Phase 1: slide panel out
+  skillWrap.classList.remove('active');
+
+  setTimeout(() => {
+    // Update content while panel is hidden
+    showExp(newDeptId);
+
+    // Mark new planet active immediately (bright, iconSwap triggers)
+    scene.querySelectorAll('.skill-node').forEach(el => {
+      const isActive = el.dataset.dept === newDeptId;
+      el.classList.toggle('active',   isActive);
+      el.classList.toggle('inactive', !isActive);
+    });
+    activeDept = newDeptId;
+    treeState  = 'detail';
+    skillWrap.classList.remove('detail-left', 'detail-right');
+    skillWrap.classList.add('detail-left'); // all steps land at 270° = left
+    updateDots();
+    updateHint();
+
+    // Freeze camera during arc animation (scene transform must not move)
+    scene.classList.add('no-transition');
+
+    // rAF loop: interpolate orbitOffset → planets follow the arc
+    const start = performance.now();
+    function frame(now) {
+      const t     = Math.min((now - start) / ORBIT_ROTATION_MS, 1);
+      orbitOffset = fromOffset + (toOffset - fromOffset) * ease(t);
+      positionNodes();
+
+      if (t < 1) { requestAnimationFrame(frame); return; }
+
+      // Snap to exact final angle, re-enable scene transition, then zoom
+      orbitOffset = toOffset;
+      positionNodes();
+      scene.classList.remove('no-transition');
+      applyZoom(newDeptId);
+
+      // Phase 2: slide panel in
+      requestAnimationFrame(() => {
+        skillWrap.classList.add('active');
+        setTimeout(() => { isOrbitRotating = false; }, 180);
+      });
+    }
+
+    requestAnimationFrame(frame);
+  }, 120);
+}
+
 function goDetail(deptId) {
   treeState  = 'detail';
   activeDept = deptId;
+
+  // Sync orbit step when planet is opened directly (click)
+  const stepIdx = ORBIT_SCROLL_ORDER.indexOf(deptId);
+  if (stepIdx !== -1) orbitStep = stepIdx;
 
   const { nx } = nodePositions[deptId];
   const side = nx < 0 ? 'detail-left' : 'detail-right';
@@ -568,28 +665,23 @@ function initSkillEvents() {
     el.addEventListener('click', e => {
       e.stopPropagation();
       const deptId = el.dataset.dept;
-      if (treeState === 'detail' && activeDept === deptId) goOverview();
-      else goDetail(deptId);
+      if (activeDept !== deptId) goDetail(deptId);
     });
 
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         const deptId = el.dataset.dept;
-        if (treeState === 'detail' && activeDept === deptId) goOverview();
-        else goDetail(deptId);
+        if (activeDept !== deptId) goDetail(deptId);
       }
     });
-  });
-
-  // Click outside nodes → back to overview
-  scene.addEventListener('click', e => {
-    if (!e.target.closest('.skill-node') && treeState === 'detail') goOverview();
   });
 }
 
 
-backBtn.addEventListener('click', () => goOverview());
+backBtn.addEventListener('click', () => {
+  if (orbitStep > 0) rotateToStep(orbitStep - 1);
+});
 
 /* ============================================================
    Demo Overlay (IDE Mockup)
@@ -1320,16 +1412,114 @@ document.getElementById('lang-toggle').addEventListener('click', () => {
 });
 
 /* ============================================================
+   Scroll-driven orbit capture (sticky scroll pattern)
+   ============================================================ */
+function updateDots() {
+  document.querySelectorAll('.skills__dot').forEach((dot, i) => {
+    dot.classList.toggle('active', i === orbitStep);
+  });
+}
+
+function initSkillsDots() {
+  document.querySelectorAll('.skills__dot').forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      if (i !== orbitStep) rotateToStep(i);
+    });
+  });
+}
+
+function initSkillsScrollCapture() {
+  const skillsSection = document.getElementById('skills');
+  let accumulator = 0;
+  let locked      = false;
+  const THRESHOLD  = 100;
+  const LOCKOUT_MS = 650;
+
+  // True while the sticky panel is pinned in the viewport
+  function isInStickyZone() {
+    const rect = skillsSection.getBoundingClientRect();
+    return rect.top <= 2 && rect.bottom >= window.innerHeight - 2;
+  }
+
+  // Show panel on first scroll into sticky zone
+  window.addEventListener('scroll', () => {
+    if (!skillsPanelShown && isInStickyZone()) {
+      skillsPanelShown = true;
+      requestAnimationFrame(() => skillWrap.classList.add('active'));
+    }
+  }, { passive: true });
+
+  // Also check immediately (e.g. page loaded with #skills hash)
+  requestAnimationFrame(() => {
+    if (!skillsPanelShown && isInStickyZone()) {
+      skillsPanelShown = true;
+      skillWrap.classList.add('active');
+    }
+  });
+
+  window.addEventListener('wheel', (e) => {
+    if (!isInStickyZone()) return;
+
+    const goingDown = e.deltaY > 0;
+    const atStart   = orbitStep === 0 && !goingDown;
+    const atEnd     = orbitStep === ORBIT_SCROLL_ORDER.length - 1 && goingDown;
+
+    // At boundary: let native scroll carry user to next/prev section
+    if (atStart || atEnd) return;
+
+    e.preventDefault();
+    if (locked || isOrbitRotating) return;
+
+    accumulator += e.deltaY;
+    if (Math.abs(accumulator) >= THRESHOLD) {
+      const dir   = accumulator > 0 ? 1 : -1;
+      accumulator = 0;
+      locked      = true;
+      setTimeout(() => { locked = false; accumulator = 0; }, LOCKOUT_MS);
+      rotateToStep(orbitStep + dir);
+    }
+  }, { passive: false });
+
+  // Touch support
+  let touchStartY = 0;
+  let touchDone   = false;
+  window.addEventListener('touchstart', e => {
+    touchStartY = e.touches[0].clientY;
+    touchDone   = false;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', e => {
+    if (!isInStickyZone() || touchDone || isOrbitRotating) return;
+    const delta     = touchStartY - e.touches[0].clientY;
+    const goingDown = delta > 0;
+    const atStart   = orbitStep === 0 && !goingDown;
+    const atEnd     = orbitStep === ORBIT_SCROLL_ORDER.length - 1 && goingDown;
+    if (atStart || atEnd) return;
+    if (Math.abs(delta) >= 60) {
+      e.preventDefault();
+      touchDone = true;
+      rotateToStep(orbitStep + (goingDown ? 1 : -1));
+    }
+  }, { passive: false });
+}
+
+/* ============================================================
    Hint text
    ============================================================ */
 function updateHint() {
   const el = document.getElementById('skills-hint');
   if (!el) return;
-  const isTouch = window.matchMedia('(hover: none)').matches;
   if (treeState === 'detail') {
-    el.style.opacity = '0';
+    if (orbitStep < ORBIT_SCROLL_ORDER.length - 1) {
+      el.style.opacity = '';
+      el.textContent = currentLang === 'cs' ? '↓ Scrolluj pro další technologie' : '↓ Scroll for more';
+    } else {
+      el.style.opacity = '';
+      el.textContent = currentLang === 'cs' ? '↓ Scrolluj dál' : '↓ Scroll to continue';
+    }
   } else {
     el.style.opacity = '';
+    const isTouch = window.matchMedia('(hover: none)').matches;
     el.textContent = isTouch
       ? (currentLang === 'cs' ? 'Klepni na oblast pro detail' : 'Tap a section for details')
       : (currentLang === 'cs' ? 'Klikni na oblast pro detail' : 'Click a section for details');
@@ -1477,7 +1667,10 @@ function init() {
   positionNodes();
   updateNodeLabels();
   addOrbitLabels();
+  initSkillsDetail();
   initSkillEvents();
+  initSkillsDots();
+  initSkillsScrollCapture();
   startIntro();
   updateHint();
 
