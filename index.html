@@ -13,6 +13,8 @@
 </head>
 <body>
 
+  <div id="scroll-progress" aria-hidden="true"></div>
+
   <!-- ===== NAVBAR ===== -->
   <header class="navbar" id="navbar">
     <div class="container navbar__inner">
@@ -181,7 +183,10 @@
       </div>
     </div>
 
-    <div class="skills__dots" id="skills-dots">
+    <div class="skills__axis" id="skills-dots">
+      <div class="skills__axis-track" aria-hidden="true">
+        <div class="skills__axis-fill" id="skills-progress-fill"></div>
+      </div>
       <button class="skills__dot" data-step="0" aria-label="PHP / Laravel"></button>
       <button class="skills__dot" data-step="1" aria-label="C# / .NET"></button>
       <button class="skills__dot" data-step="2" aria-label="Tooling"></button>

@@ -61,10 +61,6 @@ html { scroll-behavior: smooth; font-size: 16px; }
   transform: translate(-50%, -50%) scale(1.7);
 }
 
-@keyframes dashFlow {
-  to { stroke-dashoffset: 12; }
-}
-
 
 body {
   background: var(--bg);
@@ -147,6 +143,17 @@ img { max-width: 100%; display: block; }
 /* ============================================================
    Navbar
    ============================================================ */
+#scroll-progress {
+  position: fixed;
+  top: 0; left: 0;
+  height: 2px;
+  width: 0;
+  background: var(--fg);
+  z-index: 101;
+  transition: width 0.05s linear;
+  pointer-events: none;
+}
+
 .navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -871,26 +878,58 @@ img { max-width: 100%; display: block; }
 
 
 
-.skills__dots {
+.skills__axis {
+  position: relative;
+  width: 120px;
+  height: 20px;
+  margin: 1.2rem auto 0;
   display: flex;
-  gap: 8px;
-  justify-content: center;
-  margin-top: 1.2rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skills__axis-track {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.skills__axis-fill {
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.82);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.15s linear;
 }
 
 .skills__dot {
+  position: relative;
+  z-index: 1;
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
-  border: none;
+  background: var(--bg);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   padding: 0;
   cursor: pointer;
-  transition: background 0.35s ease, transform 0.35s ease;
+  flex-shrink: 0;
+  transition: background 0.35s ease, border-color 0.35s ease, transform 0.35s ease;
+}
+
+.skills__dot::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }
 
 .skills__dot.active {
   background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(255, 255, 255, 0.82);
   transform: scale(1.4);
 }
 

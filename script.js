@@ -171,40 +171,6 @@ function typeRole(text, delay) {
 /* ============================================================
    Hero — Typewriter (Option 3)
    ============================================================ */
-const TW_WORDS = {
-  cs: ['Backend Developer', 'PHP / Laravel', 'C# / .NET', 'REST API Design', 'AI-Augmented Dev'],
-  en: ['Backend Developer', 'PHP / Laravel', 'C# / .NET', 'REST API Design', 'AI-Augmented Dev'],
-};
-
-let _twTimer = null;
-
-function runTypewriter() {
-  const el = document.getElementById('tw-text');
-  if (!el) return;
-  clearTimeout(_twTimer);
-
-  const words   = TW_WORDS[currentLang] || TW_WORDS.en;
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  if (reduced) { el.textContent = words[0]; return; }
-
-  let wi = 0, ci = 0, deleting = false;
-
-  function tick() {
-    const word = words[wi];
-    if (!deleting) {
-      el.textContent = word.slice(0, ++ci);
-      if (ci === word.length) { deleting = true; _twTimer = setTimeout(tick, 2500); }
-      else                    {                   _twTimer = setTimeout(tick, 62);   }
-    } else {
-      el.textContent = word.slice(0, --ci);
-      if (ci === 0) { deleting = false; wi = (wi + 1) % words.length; _twTimer = setTimeout(tick, 380); }
-      else          {                   _twTimer = setTimeout(tick, 34);  }
-    }
-  }
-
-  _twTimer = setTimeout(tick, 950);
-}
 
 /* ============================================================
    Hero — Terminal Intro (Option 6 — saved for later)
@@ -738,7 +704,6 @@ backBtn.addEventListener('click', () => {
     cursor.style.top  = my + 'px';
 
     if (!isInSkillsSection()) {
-      guideSvg.style.opacity = '0';
       cursor.classList.remove('on-node');
       return;
     }
@@ -832,7 +797,6 @@ backBtn.addEventListener('click', () => {
 
   document.addEventListener('mouseleave', () => {
     mx = -9999; my = -9999;
-    guideSvg.style.opacity = '0';
     cursor.classList.remove('on-node');
   });
 }());
@@ -899,7 +863,7 @@ document.getElementById('lang-toggle').addEventListener('click', () => {
    ============================================================ */
 function updateDots() {
   document.querySelectorAll('.skills__dot').forEach((dot, i) => {
-    dot.classList.toggle('active', i === orbitStep);
+    dot.classList.toggle('active', i <= orbitStep);
   });
 }
 
@@ -913,8 +877,8 @@ function initSkillsDots() {
 
 function initSkillsScrollCapture() {
   const skillsSection = document.getElementById('skills');
+  const fillEl = document.getElementById('skills-progress-fill');
   const STEPS = ORBIT_SCROLL_ORDER.length;
-
   function getProgress() {
     const rect = skillsSection.getBoundingClientRect();
     const scrollable = skillsSection.offsetHeight - window.innerHeight;
@@ -934,11 +898,13 @@ function initSkillsScrollCapture() {
   }
 
   window.addEventListener('scroll', () => {
+    const p = getProgress();
     if (!skillsPanelShown && isInStickyZone()) {
       skillsPanelShown = true;
       requestAnimationFrame(() => skillWrap.classList.add('active'));
     }
     syncStep();
+    if (fillEl) fillEl.style.transform = `scaleX(${p})`;
   }, { passive: true });
 
   // Also check immediately (e.g. page loaded with #skills hash)
@@ -1202,4 +1168,20 @@ if (document.readyState === 'loading') {
   } else {
     runScramble();
   }
+})();
+
+/* ============================================================
+   Page scroll progress bar
+   ============================================================ */
+(function initScrollProgress() {
+  const bar = document.getElementById('scroll-progress');
+  if (!bar) return;
+  function update() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+    bar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update, { passive: true });
+  update();
 })();
