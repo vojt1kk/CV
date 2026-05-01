@@ -283,8 +283,8 @@ function runTerminalIntro() {
    ============================================================ */
 const DEPTS = [
   { id: 'laravel', label: { cs: 'PHP / Laravel', en: 'PHP / Laravel' }, angle: 270 },
-  { id: 'dotnet',  label: { cs: 'C# / .NET',     en: 'C# / .NET'     }, angle: 30  },
-  { id: 'tooling', label: { cs: 'Tooling',        en: 'Tooling'       }, angle: 150 },
+  { id: 'dotnet',  label: { cs: 'C# / .NET',     en: 'C# / .NET'     }, angle: 150 },
+  { id: 'tooling', label: { cs: 'Tooling',        en: 'Tooling'       }, angle: 30  },
 ];
 
 const ORBIT_LABELS = {
@@ -334,7 +334,7 @@ let orbitOffset = 0;
 let orbitStep = 0;
 let isOrbitRotating = false;
 let skillsPanelShown = false;
-const ORBIT_SCROLL_ORDER = ['laravel', 'tooling', 'dotnet'];
+const ORBIT_SCROLL_ORDER = ['laravel', 'dotnet', 'tooling'];
 const ORBIT_ROTATION_MS = 480;
 
 // Stars
@@ -525,7 +525,6 @@ function triggerZoomEffects() {
 }
 
 function goOverview() {
-  closeDemo();
   treeState  = 'overview';
   activeDept = null;
   triggerZoomEffects();
@@ -564,7 +563,7 @@ function initSkillsDetail() {
   // Panel (.active) is added later by scroll handler on first entry
 }
 
-function rotateToStep(step) {
+function rotateToStep(step, onDone) {
   if (isOrbitRotating) return;
   isOrbitRotating = true;
 
@@ -619,7 +618,7 @@ function rotateToStep(step) {
       // Phase 2: slide panel in
       requestAnimationFrame(() => {
         skillWrap.classList.add('active');
-        setTimeout(() => { isOrbitRotating = false; }, 180);
+        setTimeout(() => { isOrbitRotating = false; if (onDone) onDone(); }, 180);
       });
     }
 
@@ -683,513 +682,16 @@ backBtn.addEventListener('click', () => {
   if (orbitStep > 0) rotateToStep(orbitStep - 1);
 });
 
-/* ============================================================
-   Demo Overlay (IDE Mockup)
-   ============================================================ */
-const demoOverlay  = document.getElementById('video-overlay');
-const demoCloseBtn = document.getElementById('video-overlay-close');
-const demoBdrop    = document.getElementById('video-overlay-backdrop');
-const demoBtn      = document.getElementById('skills-demo-btn');
-const demoCardEl   = demoOverlay.querySelector('.video-overlay__card');
 
-const ideTabs  = document.getElementById('ide-tabs');
-const ideLines = document.getElementById('ide-lines');
-const ideCode  = document.getElementById('ide-code');
-
-let demoOpen = false;
-
-// Placeholder code — uživatel dodá reálný kód později
-const IDE_FILES = {
-  laravel: [
-    { name: 'UserController.php', code: `<?php
-
-namespace App\\Http\\Controllers;
-
-use App\\Models\\User;
-use App\\Services\\UserService;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
-
-class UserController extends Controller
-{
-    public function __construct(
-        private readonly UserService $userService
-    ) {}
-
-    // GET /api/users
-    public function index(Request $request): JsonResponse
-    {
-        $users = $this->userService->getFiltered(
-            $request->query('search'),
-            $request->integer('per_page', 15)
-        );
-
-        return response()->json($users);
-    }
-
-    // POST /api/users
-    public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'role'  => 'in:admin,editor,viewer',
-        ]);
-
-        $user = $this->userService->create($validated);
-
-        return response()->json($user, 201);
-    }
-}` },
-    { name: 'SyncUsersCommand.php', code: `<?php
-
-namespace App\\Console\\Commands;
-
-use App\\Models\\User;
-use App\\Services\\ExternalApiService;
-use Illuminate\\Console\\Command;
-
-class SyncUsersCommand extends Command
-{
-    protected $signature = 'users:sync
-                            {--dry-run : Preview without saving}';
-
-    protected $description = 'Sync users from external API';
-
-    public function handle(ExternalApiService $api): int
-    {
-        $this->info('Fetching users from API...');
-
-        $external = $api->fetchUsers();
-        $synced   = 0;
-
-        foreach ($external as $data) {
-            if ($this->option('dry-run')) {
-                $this->line("  [DRY] {$data['email']}");
-                continue;
-            }
-
-            User::updateOrCreate(
-                ['external_id' => $data['id']],
-                [
-                    'name'  => $data['name'],
-                    'email' => $data['email'],
-                ]
-            );
-
-            $synced++;
-        }
-
-        $this->info("Synced {$synced} users.");
-
-        return self::SUCCESS;
-    }
-}` },
-    { name: 'UserObserver.php', code: `<?php
-
-namespace App\\Observers;
-
-use App\\Models\\User;
-use App\\Notifications\\WelcomeNotification;
-use Illuminate\\Support\\Facades\\Cache;
-use Illuminate\\Support\\Facades\\Log;
-
-class UserObserver
-{
-    public function created(User $user): void
-    {
-        // Send welcome email
-        $user->notify(new WelcomeNotification());
-
-        Log::info('User created', [
-            'id'    => $user->id,
-            'email' => $user->email,
-        ]);
-    }
-
-    public function updated(User $user): void
-    {
-        // Invalidate cache on profile change
-        if ($user->isDirty(['name', 'email', 'role'])) {
-            Cache::forget("user:{$user->id}:profile");
-        }
-    }
-
-    public function deleted(User $user): void
-    {
-        Cache::forget("user:{$user->id}:profile");
-
-        Log::info('User deleted', ['id' => $user->id]);
-    }
-}` },
-  ],
-  dotnet: [
-    { name: 'UsersController.cs', code: `using Microsoft.AspNetCore.Mvc;
-using MyApp.Services;
-using MyApp.Models;
-
-namespace MyApp.Controllers;
-
-[ApiController]
-[Route("api/[controller]")]
-public class UsersController : ControllerBase
-{
-    private readonly IUserService _userService;
-
-    public UsersController(IUserService userService)
-    {
-        _userService = userService;
-    }
-
-    // GET /api/users
-    [HttpGet]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] string? search,
-        [FromQuery] int perPage = 15)
-    {
-        var users = await _userService
-            .GetFilteredAsync(search, perPage);
-
-        return Ok(users);
-    }
-
-    // POST /api/users
-    [HttpPost]
-    public async Task<IActionResult> Create(
-        [FromBody] CreateUserDto dto)
-    {
-        var user = await _userService.CreateAsync(dto);
-
-        return CreatedAtAction(
-            nameof(GetAll), new { id = user.Id }, user);
-    }
-}` },
-    { name: 'UserService.cs', code: `using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Models;
-
-namespace MyApp.Services;
-
-public class UserService : IUserService
-{
-    private readonly AppDbContext _db;
-
-    public UserService(AppDbContext db)
-    {
-        _db = db;
-    }
-
-    public async Task<List<UserDto>> GetFilteredAsync(
-        string? search, int perPage)
-    {
-        var query = _db.Users.AsQueryable();
-
-        if (!string.IsNullOrEmpty(search))
-        {
-            query = query.Where(u =>
-                u.Name.Contains(search) ||
-                u.Email.Contains(search));
-        }
-
-        return await query
-            .Take(perPage)
-            .Select(u => new UserDto(u.Id, u.Name, u.Email))
-            .ToListAsync();
-    }
-
-    public async Task<UserDto> CreateAsync(CreateUserDto dto)
-    {
-        var user = new User
-        {
-            Name = dto.Name,
-            Email = dto.Email,
-            Role = dto.Role ?? "viewer"
-        };
-
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        return new UserDto(user.Id, user.Name, user.Email);
-    }
-}` },
-    { name: 'User.cs', code: `using System.ComponentModel.DataAnnotations;
-
-namespace MyApp.Models;
-
-public class User
-{
-    public int Id { get; set; }
-
-    [Required]
-    [MaxLength(255)]
-    public string Name { get; set; } = string.Empty;
-
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
-
-    [MaxLength(50)]
-    public string Role { get; set; } = "viewer";
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-
-public record UserDto(int Id, string Name, string Email);
-
-public record CreateUserDto(
-    string Name,
-    string Email,
-    string? Role);` },
-  ],
-};
-
-const IDE_TITLES = {
-  laravel: 'PhpStorm — laravel-app',
-  dotnet:  'Rider — dotnet-api',
-};
-
-const RUN_DATA = {
-  laravel: [
-    { text: '$ php artisan serve', delay: 0, cls: 'run-cmd' },
-    { text: 'Starting Laravel development server: http://127.0.0.1:8000', delay: 500 },
-    { text: '', delay: 300 },
-    { text: '[200] GET /api/users .............. 43ms', delay: 700, cls: 'run-ok' },
-    { text: '{', delay: 200 },
-    { text: '  "data": [', delay: 80 },
-    { text: '    { "id": 1, "name": "Jan Novák", "email": "jan@example.com" },', delay: 80 },
-    { text: '    { "id": 2, "name": "Eva Černá", "email": "eva@example.com" }', delay: 80 },
-    { text: '  ],', delay: 80 },
-    { text: '  "per_page": 15,', delay: 80 },
-    { text: '  "total": 2', delay: 80 },
-    { text: '}', delay: 80 },
-    { text: '', delay: 400 },
-    { text: '$ php artisan users:sync', delay: 500, cls: 'run-cmd' },
-    { text: 'Fetching users from external API...', delay: 600 },
-    { text: '  [SYNC] jan@example.com — updated', delay: 350 },
-    { text: '  [SYNC] eva@example.com — updated', delay: 350 },
-    { text: '  [NEW]  petr@example.com — created', delay: 350 },
-    { text: 'Synced 3 users.', delay: 400, cls: 'run-ok' },
-    { text: '', delay: 300 },
-    { text: 'Process finished with exit code 0', delay: 400, cls: 'run-dim' },
-  ],
-  dotnet: [
-    { text: '$ dotnet run', delay: 0, cls: 'run-cmd' },
-    { text: 'Building...', delay: 400 },
-    { text: 'Now listening on: https://localhost:5001', delay: 600, cls: 'run-ok' },
-    { text: '', delay: 300 },
-    { text: '[200] GET /api/users .............. 28ms', delay: 700, cls: 'run-ok' },
-    { text: '[', delay: 200 },
-    { text: '  { "id": 1, "name": "Jan Novák", "email": "jan@example.com" },', delay: 80 },
-    { text: '  { "id": 2, "name": "Eva Černá", "email": "eva@example.com" }', delay: 80 },
-    { text: ']', delay: 80 },
-    { text: '', delay: 400 },
-    { text: '[201] POST /api/users ............. 35ms', delay: 600, cls: 'run-ok' },
-    { text: '{ "id": 3, "name": "Petr Svoboda", "email": "petr@example.com" }', delay: 200 },
-    { text: '', delay: 300 },
-    { text: 'Application is shutting down...', delay: 500 },
-    { text: 'Process finished with exit code 0', delay: 400, cls: 'run-dim' },
-  ],
-};
-
-function highlightCSharp(code) {
-  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const KW = /^(using|namespace|public|private|protected|internal|static|readonly|abstract|sealed|override|virtual|async|await|class|record|struct|interface|enum|new|return|if|else|foreach|var|string|int|bool|void|null|get|set|nameof)$/;
-  const TOKEN = /(\/\/.*$|\/\*[\s\S]*?\*\/)|("(?:[^"\\]|\\.)*")|(\b\w+\b)/gm;
-
-  let result = '';
-  let last = 0;
-  let m;
-
-  while ((m = TOKEN.exec(code)) !== null) {
-    result += esc(code.slice(last, m.index));
-    if (m[1])      result += '<span class="cmt">' + esc(m[1]) + '</span>';
-    else if (m[2]) result += '<span class="str">' + esc(m[2]) + '</span>';
-    else if (m[3] && KW.test(m[3])) result += '<span class="kw">' + esc(m[3]) + '</span>';
-    else           result += esc(m[0]);
-    last = m.index + m[0].length;
-  }
-  result += esc(code.slice(last));
-  return result;
-}
-
-function highlightPHP(code) {
-  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const KW = /^(class|function|return|use|public|private|protected|static|new|if|else|foreach|namespace|extends|implements|throw|try|catch|finally|yield|match|fn|readonly|abstract|interface|trait|enum|void|int|string|array|bool)$/;
-  const TOKEN = /(\/\/.*$|\/\*[\s\S]*?\*\/)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\$\w+)|(\b\w+\b)/gm;
-
-  let result = '';
-  let last = 0;
-  let m;
-
-  while ((m = TOKEN.exec(code)) !== null) {
-    result += esc(code.slice(last, m.index));
-    if (m[1])      result += '<span class="cmt">' + esc(m[1]) + '</span>';
-    else if (m[2]) result += '<span class="str">' + esc(m[2]) + '</span>';
-    else if (m[3]) result += '<span class="var">' + esc(m[3]) + '</span>';
-    else if (m[4] && KW.test(m[4])) result += '<span class="kw">' + esc(m[4]) + '</span>';
-    else           result += esc(m[0]);
-    last = m.index + m[0].length;
-  }
-  result += esc(code.slice(last));
-  return result;
-}
-
-let currentDept = null;
-
-function showFile(file) {
-  const lines = file.code.split('\n');
-  ideLines.innerHTML = lines.map((_, i) => (i + 1)).join('\n');
-  const highlight = currentDept === 'dotnet' ? highlightCSharp : highlightPHP;
-  ideCode.innerHTML = highlight(file.code) + '<span class="ide__cursor"></span>';
-}
-
-function switchTab(deptId, index) {
-  const files = IDE_FILES[deptId];
-  if (!files) return;
-  ideTabs.querySelectorAll('.ide__tab').forEach((t, i) => {
-    t.classList.toggle('active', i === index);
-  });
-  showFile(files[index]);
-}
-
-function renderIDE(deptId) {
-  const files = IDE_FILES[deptId];
-  if (!files) return;
-  currentDept = deptId;
-
-  // Update titlebar
-  const titleEl = document.querySelector('.ide__title');
-  if (titleEl) titleEl.textContent = IDE_TITLES[deptId] || 'IDE';
-
-  // Tab icon letter
-  const iconLetter = deptId === 'dotnet' ? 'C' : 'C';
-
-  ideTabs.innerHTML = '';
-  files.forEach((file, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'ide__tab' + (i === 0 ? ' active' : '');
-    btn.innerHTML = '<svg class="ide__tab-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">'
-      + '<circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.2"/>'
-      + '<text x="8" y="11.5" text-anchor="middle" fill="currentColor" font-size="10" font-family="inherit" font-weight="600">' + iconLetter + '</text>'
-      + '</svg>' + file.name;
-    btn.addEventListener('click', () => switchTab(deptId, i));
-    ideTabs.appendChild(btn);
-  });
-
-  showFile(files[0]);
-}
-
-function openDemo(deptId) {
-  if (!IDE_FILES[deptId]) return;
-  demoOpen = true;
-  document.body.style.overflow = 'hidden';
-  renderIDE(deptId);
-  demoOverlay.setAttribute('aria-hidden', 'false');
-  requestAnimationFrame(() => {
-    demoOverlay.classList.add('open');
-    demoOverlay.addEventListener('transitionend', function onOpen(e) {
-      if (e.target !== demoOverlay) return;
-      demoOverlay.removeEventListener('transitionend', onOpen);
-      demoCloseBtn.focus();
-    });
-  });
-}
-
-function closeDemo() {
-  if (!demoOpen) return;
-  demoOpen = false;
-  resetRun();
-  document.body.style.overflow = '';
-  demoOverlay.classList.remove('open');
-  demoOverlay.setAttribute('aria-hidden', 'true');
-  if (demoBtn) demoBtn.focus();
-}
-
-// Run panel
-const runPanel  = document.getElementById('ide-run-panel');
-const runOutput = document.getElementById('ide-run-output');
-const runPlayBtn = document.getElementById('ide-run-play');
-let runTimers = [];
-let runActive = false;
-
-function runDemo() {
-  const lines = RUN_DATA[currentDept] || RUN_DATA.laravel;
-  runActive = true;
-  runOutput.innerHTML = '';
-  runPanel.classList.add('open');
-
-  let cumulative = 0;
-  lines.forEach((line, i) => {
-    cumulative += line.delay;
-    const timer = setTimeout(() => {
-      const el = document.createElement('div');
-      if (line.cls) el.className = line.cls;
-      el.textContent = line.text;
-      runOutput.appendChild(el);
-      runOutput.scrollTop = runOutput.scrollHeight;
-    }, cumulative);
-    runTimers.push(timer);
-  });
-}
-
-function resetRun() {
-  runTimers.forEach(t => clearTimeout(t));
-  runTimers = [];
-  runActive = false;
-  runPanel.classList.remove('open');
-  runOutput.innerHTML = '';
-}
-
-runPlayBtn.addEventListener('click', () => {
-  resetRun();
-  runDemo();
-});
-
-document.getElementById('ide-run-minimize').addEventListener('click', () => {
-  resetRun();
-});
-
-demoBtn.addEventListener('click', () => {
-  if (activeDept) openDemo(activeDept);
-});
-
-demoCloseBtn.addEventListener('click', () => closeDemo());
-demoBdrop.addEventListener('click', () => closeDemo());
-
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && demoOpen) {
-    e.preventDefault();
-    closeDemo();
-  }
-});
-
-demoCardEl.addEventListener('keydown', e => {
-  if (e.key !== 'Tab') return;
-  const focusable = demoCardEl.querySelectorAll('button');
-  const first = focusable[0];
-  const last  = focusable[focusable.length - 1];
-  if (e.shiftKey && document.activeElement === first) {
-    e.preventDefault();
-    last.focus();
-  } else if (!e.shiftKey && document.activeElement === last) {
-    e.preventDefault();
-    first.focus();
-  }
-});
 
 /* ============================================================
    Custom Cursor + Guide Line
    ============================================================ */
 (function initCustomCursor() {
-  const cursor    = document.getElementById('custom-cursor');
-  const guideSvg  = document.getElementById('cursor-guide');
-  const guideLine = document.getElementById('guide-line');
-  const guideGrad = document.getElementById('guide-grad');
-  if (!cursor || !guideSvg || !guideLine || !guideGrad) return;
+  const cursor   = document.getElementById('custom-cursor');
+  if (!cursor) return;
 
-  const FADE_START = 340;
-  const FADE_END   = 80;
-  const ON_NODE_R  = 60;
+  const ON_NODE_R = 60;
 
   const GRAV_RADIUS   = 240;
   const GRAV_MAX_SCALE = 1.35;
@@ -1244,27 +746,8 @@ demoCardEl.addEventListener('keydown', e => {
     const nodes = getNodeCenters();
     if (!nodes.length) return;
 
-    const { node, dist } = nearest(nodes, mx, my);
-    const onNode = dist < ON_NODE_R;
-    cursor.classList.toggle('on-node', onNode);
-
-    let opacity = 0;
-    if (!onNode && dist < FADE_START) {
-      opacity = Math.min(1, (FADE_START - dist) / (FADE_START - FADE_END));
-    }
-    guideSvg.style.opacity = opacity.toFixed(3);
-
-    if (opacity > 0 && node) {
-      guideLine.setAttribute('x1', node.x);
-      guideLine.setAttribute('y1', node.y);
-      guideLine.setAttribute('x2', mx);
-      guideLine.setAttribute('y2', my);
-      guideGrad.setAttribute('x1', node.x);
-      guideGrad.setAttribute('y1', node.y);
-      guideGrad.setAttribute('x2', mx);
-      guideGrad.setAttribute('y2', my);
-    }
-
+    const { dist } = nearest(nodes, mx, my);
+    cursor.classList.toggle('on-node', dist < ON_NODE_R);
   }
 
   // Gravity loop — runs every frame, lerps toward targets
@@ -1430,23 +913,32 @@ function initSkillsDots() {
 
 function initSkillsScrollCapture() {
   const skillsSection = document.getElementById('skills');
-  let accumulator = 0;
-  let locked      = false;
-  const THRESHOLD  = 100;
-  const LOCKOUT_MS = 650;
+  const STEPS = ORBIT_SCROLL_ORDER.length;
 
-  // True while the sticky panel is pinned in the viewport
+  function getProgress() {
+    const rect = skillsSection.getBoundingClientRect();
+    const scrollable = skillsSection.offsetHeight - window.innerHeight;
+    return scrollable > 0 ? Math.max(0, Math.min(1, -rect.top / scrollable)) : 0;
+  }
+
   function isInStickyZone() {
     const rect = skillsSection.getBoundingClientRect();
     return rect.top <= 2 && rect.bottom >= window.innerHeight - 2;
   }
 
-  // Show panel on first scroll into sticky zone
+  // Map scroll progress to orbit step; re-check after each rotation finishes
+  function syncStep() {
+    if (!isInStickyZone() || isOrbitRotating) return;
+    const targetStep = Math.min(Math.floor(getProgress() * STEPS), STEPS - 1);
+    if (targetStep !== orbitStep) rotateToStep(targetStep, syncStep);
+  }
+
   window.addEventListener('scroll', () => {
     if (!skillsPanelShown && isInStickyZone()) {
       skillsPanelShown = true;
       requestAnimationFrame(() => skillWrap.classList.add('active'));
     }
+    syncStep();
   }, { passive: true });
 
   // Also check immediately (e.g. page loaded with #skills hash)
@@ -1456,51 +948,6 @@ function initSkillsScrollCapture() {
       skillWrap.classList.add('active');
     }
   });
-
-  window.addEventListener('wheel', (e) => {
-    if (!isInStickyZone()) return;
-
-    const goingDown = e.deltaY > 0;
-    const atStart   = orbitStep === 0 && !goingDown;
-    const atEnd     = orbitStep === ORBIT_SCROLL_ORDER.length - 1 && goingDown;
-
-    // At boundary: let native scroll carry user to next/prev section
-    if (atStart || atEnd) return;
-
-    e.preventDefault();
-    if (locked || isOrbitRotating) return;
-
-    accumulator += e.deltaY;
-    if (Math.abs(accumulator) >= THRESHOLD) {
-      const dir   = accumulator > 0 ? 1 : -1;
-      accumulator = 0;
-      locked      = true;
-      setTimeout(() => { locked = false; accumulator = 0; }, LOCKOUT_MS);
-      rotateToStep(orbitStep + dir);
-    }
-  }, { passive: false });
-
-  // Touch support
-  let touchStartY = 0;
-  let touchDone   = false;
-  window.addEventListener('touchstart', e => {
-    touchStartY = e.touches[0].clientY;
-    touchDone   = false;
-  }, { passive: true });
-
-  window.addEventListener('touchmove', e => {
-    if (!isInStickyZone() || touchDone || isOrbitRotating) return;
-    const delta     = touchStartY - e.touches[0].clientY;
-    const goingDown = delta > 0;
-    const atStart   = orbitStep === 0 && !goingDown;
-    const atEnd     = orbitStep === ORBIT_SCROLL_ORDER.length - 1 && goingDown;
-    if (atStart || atEnd) return;
-    if (Math.abs(delta) >= 60) {
-      e.preventDefault();
-      touchDone = true;
-      rotateToStep(orbitStep + (goingDown ? 1 : -1));
-    }
-  }, { passive: false });
 }
 
 /* ============================================================

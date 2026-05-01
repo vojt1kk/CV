@@ -108,15 +108,14 @@
           <div class="about__info-row">
             <span class="about__info-label" data-i18n="about.key-focus">Zaměření</span>
             <div class="about__info-tags">
-              <span class="tag">PHP</span>
               <span class="tag">Laravel</span>
-              <span class="tag">C#</span>
               <span class="tag">.NET</span>
+              <span class="tag">Claude</span>
             </div>
           </div>
           <div class="about__info-row">
             <span class="about__info-label" data-i18n="about.key-location">Lokace</span>
-            <span class="about__info-value">Praha, CZ</span>
+            <span class="about__info-value">Pardubice, CZ</span>
           </div>
           <div class="about__info-row">
             <span class="about__info-label" data-i18n="about.key-status">Status</span>
@@ -179,20 +178,13 @@
           <span class="skills__exp-dept" id="skills-exp-title"></span>
         </div>
         <p class="skills__exp-text" id="skills-exp-text"></p>
-        <button class="skills__exp-demo" id="skills-demo-btn">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-               stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <polygon points="6 3 20 12 6 21 6 3"/>
-          </svg>
-          Zobrazit demo
-        </button>
       </div>
     </div>
 
     <div class="skills__dots" id="skills-dots">
       <button class="skills__dot" data-step="0" aria-label="PHP / Laravel"></button>
-      <button class="skills__dot" data-step="1" aria-label="Tooling"></button>
-      <button class="skills__dot" data-step="2" aria-label="C# / .NET"></button>
+      <button class="skills__dot" data-step="1" aria-label="C# / .NET"></button>
+      <button class="skills__dot" data-step="2" aria-label="Tooling"></button>
     </div>
 
     <p class="skills__hint" id="skills-hint" data-i18n="skills.hint">
@@ -274,76 +266,11 @@
     </div>
   </footer>
 
-  <!-- Video overlay -->
-  <div class="video-overlay" id="video-overlay" aria-hidden="true">
-    <div class="video-overlay__backdrop" id="video-overlay-backdrop"></div>
-    <div class="video-overlay__card" role="dialog" aria-modal="true">
-      <div class="ide">
-        <div class="ide__titlebar">
-          <div class="ide__buttons">
-            <button class="ide__btn ide__btn--close" id="video-overlay-close" aria-label="Zavřít">
-              <svg width="6" height="6" viewBox="0 0 6 6" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
-                <path d="M0.5 0.5l5 5M5.5 0.5l-5 5"/>
-              </svg>
-            </button>
-            <span class="ide__btn"></span>
-            <span class="ide__btn"></span>
-          </div>
-          <span class="ide__title">PhpStorm — laravel-app</span>
-        </div>
-        <div class="ide__tabbar">
-          <div class="ide__tabs" id="ide-tabs"></div>
-          <button class="ide__run-group" id="ide-run-play" aria-label="Spustit ukázku">
-            <span class="ide__run-label">Spustit ukázku</span>
-            <svg class="ide__run-icon" width="16" height="18" viewBox="0 0 14 16" fill="none" aria-hidden="true">
-              <path d="M1 2C1 1.2 1.8 0.7 2.5 1.1L11.5 7C12.2 7.4 12.2 8.6 11.5 9L2.5 14.9C1.8 15.3 1 14.8 1 14V2Z" stroke="currentColor" stroke-width="1.2" fill="rgba(255,255,255,0.04)"/>
-            </svg>
-          </button>
-        </div>
-        <div class="ide__editor">
-          <div class="ide__lines" id="ide-lines"></div>
-          <pre class="ide__code" id="ide-code"></pre>
-        </div>
-        <div class="ide__run-panel" id="ide-run-panel">
-          <div class="ide__run-panel-header">
-            <button class="ide__run-panel-tab active">
-              <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" aria-hidden="true">
-                <path d="M0.5 0.5v9l7-4.5z"/>
-              </svg>
-              Run
-            </button>
-            <button class="ide__run-panel-tab" disabled>Terminal</button>
-            <button class="ide__run-panel-tab" disabled>Problems</button>
-            <button class="ide__run-panel-minimize" id="ide-run-minimize" aria-label="Minimalizovat">
-              <svg width="10" height="2" viewBox="0 0 10 2" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
-                <path d="M0 1h10"/>
-              </svg>
-            </button>
-          </div>
-          <div class="ide__run-panel-output" id="ide-run-output"></div>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- Custom cursor -->
   <div id="custom-cursor"></div>
 
-  <!-- Guide line SVG overlay -->
-  <svg id="cursor-guide" aria-hidden="true">
-    <defs>
-      <linearGradient id="guide-grad" gradientUnits="userSpaceOnUse">
-        <stop offset="0%"   stop-color="white" stop-opacity="0.9"/>
-        <stop offset="100%" stop-color="white" stop-opacity="0"/>
-      </linearGradient>
-      <filter id="guide-glow" x="-100%" y="-100%" width="300%" height="300%">
-        <feGaussianBlur stdDeviation="2.5" result="blur"/>
-        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-      </filter>
-    </defs>
-    <line id="guide-line" stroke="url(#guide-grad)" stroke-width="1.8" stroke-dasharray="6 6" filter="url(#guide-glow)"/>
-  </svg>
 
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
