@@ -643,12 +643,15 @@ img { max-width: 100%; display: block; }
    Skills — Canvas
    ============================================================ */
 .skills {
-  /* height driven by .skills__scroll-wrap */
 }
 
 .skills__scroll-wrap {
   position: relative;
-  height: 400svh;
+  height: 300svh;
+}
+
+.skills__snap {
+  height: 100svh;
 }
 
 .skills__sticky {
@@ -1483,6 +1486,14 @@ img { max-width: 100%; display: block; }
   flex-direction: column;
   justify-content: center;
   padding: 5rem 0;
+  position: relative;
+}
+
+.contact > .footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 .contact__layout {
@@ -1688,3 +1699,14 @@ img { max-width: 100%; display: block; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--fg-4); border-radius: 3px; }
+
+/* ============================================================
+   Page snap — touch devices only (desktop uses JS wheel handler)
+   ============================================================ */
+@media (hover: none) {
+  html { scroll-snap-type: y mandatory; }
+  .hero, .about, .skills, .skills__snap, .contact {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+  }
+}

@@ -1703,3 +1703,73 @@ if (document.readyState === 'loading') {
   window.addEventListener('resize', update, { passive: true });
   update();
 })();
+
+/* ============================================================
+   Page Snap — smooth wheel scroll (desktop only)
+   ============================================================ */
+(function initPageSnap() {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+  const DURATION    = 480;
+  const TRIGGER_MS  = 280;  // min ms between page changes (allows interrupting mid-animation)
+  const POST_MS     = 120;  // ms after animation fully ends — kills trackpad momentum tail
+
+  let currentIdx    = 0;
+  let rafId         = null;
+  let animEndedAt   = 0;
+  let lastTriggerAt = 0;
+
+  function easeOutCubic(t) {
+    return 1 - Math.pow(1 - t, 3);
+  }
+
+  function getTargets() {
+    return Array.from(document.querySelectorAll(
+      '.hero, .about, .skills, .skills__snap, .contact'
+    ));
+  }
+
+  function scrollToIdx(idx) {
+    const targets = getTargets();
+    idx = Math.max(0, Math.min(targets.length - 1, idx));
+    currentIdx = idx;
+
+    if (rafId) cancelAnimationFrame(rafId);
+    // Always start from current scrollY — smooth even when interrupting mid-animation
+    const startY  = window.scrollY;
+    const targetY = targets[idx].getBoundingClientRect().top + window.scrollY;
+    const dist    = targetY - startY;
+    const start   = performance.now();
+
+    function frame(now) {
+      const t = Math.min((now - start) / DURATION, 1);
+      window.scrollTo(0, startY + dist * easeOutCubic(t));
+      if (t < 1) {
+        rafId = requestAnimationFrame(frame);
+      } else {
+        animEndedAt = Date.now();
+        rafId       = null;
+      }
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('wheel', e => {
+    if (demoOpen) return;
+    e.preventDefault();
+
+    if (Math.abs(e.deltaY) < 5) return;
+
+    const now = Date.now();
+    if (now - lastTriggerAt < TRIGGER_MS) return;   // per-trigger cooldown
+    if (now - animEndedAt   < POST_MS)    return;   // post-animation momentum guard
+
+    const dir     = e.deltaY > 0 ? 1 : -1;
+    const targets = getTargets();
+    const next    = Math.max(0, Math.min(targets.length - 1, currentIdx + dir));
+    if (next === currentIdx) return;
+
+    lastTriggerAt = now;
+    scrollToIdx(next);
+  }, { passive: false });
+}());
