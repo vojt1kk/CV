@@ -587,12 +587,12 @@ function rotateToStep(step, onDone) {
       // Phase 2: slide panel in
       requestAnimationFrame(() => {
         skillWrap.classList.add('active');
-        setTimeout(() => { isOrbitRotating = false; if (onDone) onDone(); }, 180);
+        setTimeout(() => { isOrbitRotating = false; if (onDone) onDone(); }, 200);
       });
     }
 
     requestAnimationFrame(frame);
-  }, 120);
+  }, 100);
 }
 
 function goDetail(deptId) {
@@ -1710,9 +1710,9 @@ if (document.readyState === 'loading') {
 (function initPageSnap() {
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
 
-  const DURATION    = 480;
-  const TRIGGER_MS  = 280;  // min ms between page changes (allows interrupting mid-animation)
-  const POST_MS     = 120;  // ms after animation fully ends — kills trackpad momentum tail
+  const DURATION    = 180;
+  const TRIGGER_MS  = 60;   // min ms between page changes (allows interrupting mid-animation)
+  const POST_MS     = 20;   // ms after animation fully ends — kills trackpad momentum tail
 
   let currentIdx    = 0;
   let rafId         = null;
