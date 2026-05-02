@@ -194,6 +194,139 @@ img { max-width: 100%; display: block; }
   pointer-events: none;
 }
 
+#scroll-hint {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.4rem;
+  transition: opacity 0.4s ease;
+  overflow: visible;
+}
+
+.scroll-hint__arrow {
+  display: block;
+  color: var(--fg-4);
+  transition: color 0.25s ease;
+  animation: hintBounce 2.2s ease-in-out 2s infinite;
+}
+
+.sha-top, .sha-bot {
+  transform-box: fill-box;
+  transform-origin: center top;
+  transition: opacity 0.3s ease;
+}
+
+.sha-trail {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%) scaleY(0);
+  transform-origin: bottom center;
+  width: 1.5px;
+  height: 46px;
+  background: linear-gradient(to top, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 40%, transparent 100%);
+  pointer-events: none;
+  opacity: 0;
+}
+
+#scroll-hint.scrolling .scroll-hint__arrow {
+  animation-play-state: paused;
+}
+
+#scroll-hint.scrolling .sha-bot {
+  animation: streakUp 0.46s cubic-bezier(0.3, 0, 0.7, 1) forwards;
+}
+
+#scroll-hint.scrolling .sha-top {
+  animation: fadeOutChev 0.46s ease forwards;
+}
+
+#scroll-hint.scrolling .sha-trail {
+  animation: trailGrow 0.52s ease forwards;
+}
+
+@keyframes streakUp {
+  0%   { transform: translateY(0);     opacity: 1; color: var(--fg-4); }
+  18%  { opacity: 1; color: #ffffff; }
+  55%  { transform: translateY(-30px); opacity: 0.7; }
+  100% { transform: translateY(-44px); opacity: 0; }
+}
+
+@keyframes fadeOutChev {
+  0%   { opacity: 1; }
+  25%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes trailGrow {
+  0%   { transform: translateX(-50%) scaleY(0); opacity: 1; }
+  45%  { transform: translateX(-50%) scaleY(1); opacity: 1; }
+  100% { transform: translateX(-50%) scaleY(1); opacity: 0; }
+}
+
+#scroll-hint:hover .scroll-hint__arrow { color: var(--fg-3); }
+
+#scroll-hint.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes hintBounce {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(4px); }
+}
+
+#page-spinner {
+  position: fixed;
+  left: 3rem;
+  bottom: 2rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: conic-gradient(
+    rgba(160,160,160,0)    0deg,
+    rgba(160,160,160,0.04) 20deg,
+    rgba(160,160,160,0.12) 60deg,
+    rgba(160,160,160,0.28) 110deg,
+    rgba(160,160,160,0.55) 170deg,
+    rgba(160,160,160,0.78) 240deg,
+    rgba(160,160,160,0.92) 300deg,
+    rgba(160,160,160,1)    335deg,
+    rgba(160,160,160,1)    352deg,
+    rgba(160,160,160,0)    360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+}
+
+#page-spinner.spinning {
+  animation: spinOnce 0.6s linear forwards;
+}
+
+@keyframes spinOnce {
+  0%   { opacity: 0; transform: rotate(0deg); }
+  12%  { opacity: 1; }
+  80%  { opacity: 1; transform: rotate(360deg); }
+  100% { opacity: 0; transform: rotate(360deg); }
+}
+
+@media (hover: none) {
+  #page-spinner { display: none; }
+}
+
+@media (hover: none) {
+  #scroll-hint  { display: none; }
+  #page-spinner { display: none; }
+}
+
 .navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -1417,7 +1550,7 @@ img { max-width: 100%; display: block; }
   position: relative;
   width: 120px;
   height: 20px;
-  margin: 1.2rem auto 0;
+  margin: 1.2rem auto 5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;

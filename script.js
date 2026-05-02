@@ -1735,6 +1735,9 @@ if (document.readyState === 'loading') {
   let animEndedAt   = 0;
   let lastTriggerAt = 0;
 
+  const hintEl    = document.getElementById('scroll-hint');
+  const spinnerEl = document.getElementById('page-spinner');
+
   function easeOutCubic(t) {
     return 1 - Math.pow(1 - t, 3);
   }
@@ -1745,13 +1748,30 @@ if (document.readyState === 'loading') {
     ));
   }
 
+  function updateHintState() {
+    if (!hintEl) return;
+    hintEl.classList.toggle('hidden', currentIdx >= getTargets().length - 1);
+  }
+
   function scrollToIdx(idx) {
     const targets = getTargets();
     idx = Math.max(0, Math.min(targets.length - 1, idx));
     currentIdx = idx;
 
     if (rafId) cancelAnimationFrame(rafId);
-    // Always start from current scrollY — smooth even when interrupting mid-animation
+
+    if (spinnerEl) {
+      spinnerEl.classList.remove('spinning');
+      void spinnerEl.offsetWidth;
+      spinnerEl.classList.add('spinning');
+    }
+
+    if (hintEl) {
+      hintEl.classList.add('scrolling');
+      setTimeout(() => hintEl.classList.remove('scrolling'), 560);
+    }
+
+
     const startY  = window.scrollY;
     const targetY = targets[idx].getBoundingClientRect().top + window.scrollY;
     const dist    = targetY - startY;
@@ -1765,6 +1785,7 @@ if (document.readyState === 'loading') {
       } else {
         animEndedAt = Date.now();
         rafId       = null;
+        if (hintEl) updateHintState();
       }
     }
     rafId = requestAnimationFrame(frame);
@@ -1788,4 +1809,17 @@ if (document.readyState === 'loading') {
     lastTriggerAt = now;
     scrollToIdx(next);
   }, { passive: false });
+
+  if (hintEl) {
+    hintEl.addEventListener('click', () => {
+      const targets = getTargets();
+      const next = Math.min(targets.length - 1, currentIdx + 1);
+      if (next !== currentIdx) {
+        lastTriggerAt = Date.now();
+        scrollToIdx(next);
+      }
+    });
+  }
+
+  updateHintState();
 }());
