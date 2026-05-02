@@ -185,10 +185,12 @@ img { max-width: 100%; display: block; }
   position: fixed;
   top: 0; left: 0;
   height: 2px;
-  width: 0;
+  width: 100%;
   background: var(--fg);
   z-index: 101;
-  transition: width 0.05s linear;
+  transform: scaleX(0);
+  transform-origin: left center;
+  will-change: transform;
   pointer-events: none;
 }
 
@@ -203,8 +205,8 @@ img { max-width: 100%; display: block; }
 .navbar.scrolled {
   padding: 1rem 0;
   background: rgba(13,13,13,0.9);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
 }
 

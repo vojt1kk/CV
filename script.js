@@ -308,6 +308,24 @@ let stars = [];
 let starsW = 0, starsH = 0;
 let rafId = null, lastFrame = 0;
 
+// Perf caches — updated on resize/scroll, read every rAF frame
+let cachedCanvasRect   = { left: 0, top: 0 };
+let skillsOffsetTop    = 0;
+let skillsOffsetHeight = 0;
+
+function updateCanvasRect() {
+  const r = skillWrap.getBoundingClientRect();
+  cachedCanvasRect.left = r.left;
+  cachedCanvasRect.top  = r.top;
+}
+
+function cacheSkillsBounds() {
+  const sec = document.getElementById('skills');
+  if (!sec) return;
+  skillsOffsetTop    = sec.offsetTop;
+  skillsOffsetHeight = sec.offsetHeight;
+}
+
 /* ============================================================
    Stars Canvas
    ============================================================ */
@@ -350,13 +368,12 @@ function drawStars() {
   stars.forEach(s => {
     const dist   = Math.hypot(s.x - cx, s.y - cy);
     const radial = 1 - (dist / maxDist) * 0.72;
-    starsCtx.save();
     starsCtx.globalAlpha = s.alpha * radial;
     starsCtx.beginPath();
     starsCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
     starsCtx.fill();
-    starsCtx.restore();
   });
+  starsCtx.globalAlpha = 1;
 }
 
 function animateStars(ts) {
@@ -404,7 +421,7 @@ function positionNodes() {
     // nx/ny = offset from scene center (used for zoom transform)
     const nx = pos.x - cx;
     const ny = pos.y - cy;
-    nodePositions[deptId] = { nx, ny };
+    nodePositions[deptId] = { nx, ny, ax: pos.x, ay: pos.y };
     el.style.left = pos.x + 'px';
     el.style.top  = pos.y + 'px';
   });
@@ -680,14 +697,18 @@ backBtn.addEventListener('click', () => {
   // Animated state per node — lerped each frame (exposed on window for goOverview)
   window.gravState = {};
   const gravState = window.gravState;
-  scene.querySelectorAll('.skill-node').forEach(el => {
+  const nodeEls = Array.from(scene.querySelectorAll('.skill-node'));
+  nodeEls.forEach(el => {
     gravState[el.dataset.dept] = { scale: 1, tx: 0, ty: 0 };
   });
 
   function getNodeCenters() {
-    return Array.from(scene.querySelectorAll('.skill-node')).map(el => {
-      const r = el.getBoundingClientRect();
-      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    return nodeEls.map(el => {
+      const pos = nodePositions[el.dataset.dept];
+      return {
+        x: cachedCanvasRect.left + (pos ? pos.ax : 0),
+        y: cachedCanvasRect.top  + (pos ? pos.ay : 0),
+      };
     });
   }
 
@@ -702,8 +723,8 @@ backBtn.addEventListener('click', () => {
 
   function isInSkillsSection() {
     if (!skillSection) return false;
-    const r = skillSection.getBoundingClientRect();
-    return my >= r.top && my <= r.bottom && mx >= r.left && mx <= r.right;
+    const viewportTop = skillsOffsetTop - window.scrollY;
+    return my >= viewportTop && my <= viewportTop + skillsOffsetHeight;
   }
 
   function paint() {
@@ -723,64 +744,55 @@ backBtn.addEventListener('click', () => {
     const { node, dist } = nearest(nodes, mx, my);
     const onNode = dist < ON_NODE_R;
     cursor.classList.toggle('on-node', onNode);
-
-    let opacity = 0;
-    if (!onNode && dist < FADE_START) {
-      opacity = Math.min(1, (FADE_START - dist) / (FADE_START - FADE_END));
-    }
-    guideSvg.style.opacity = opacity.toFixed(3);
-
-    if (opacity > 0 && node) {
-      guideLine.setAttribute('x1', node.x);
-      guideLine.setAttribute('y1', node.y);
-      guideLine.setAttribute('x2', mx);
-      guideLine.setAttribute('y2', my);
-      guideGrad.setAttribute('x1', node.x);
-      guideGrad.setAttribute('y1', node.y);
-      guideGrad.setAttribute('x2', mx);
-      guideGrad.setAttribute('y2', my);
-    }
+    guideSvg.style.opacity = '0';
   }
 
   // Gravity loop — runs every frame, lerps toward targets
   function gravityTick() {
     requestAnimationFrame(gravityTick);
 
-    const inSkills = isInSkillsSection();
-    const nodeEls = scene.querySelectorAll('.skill-node');
+    const inSkills  = isInSkillsSection();
+    const isOverview = treeState === 'overview';
 
-    // Batch read: base positions (subtract current pull to avoid feedback)
-    const nodeData = [];
     nodeEls.forEach(el => {
-      const st = gravState[el.dataset.dept];
-      const r = el.getBoundingClientRect();
-      nodeData.push({
-        el,
-        dept: el.dataset.dept,
-        cx: r.left + r.width / 2 - st.tx,
-        cy: r.top + r.height / 2 - st.ty,
-      });
-    });
-
-    // Compute targets
-    nodeData.forEach(({ el, dept, cx, cy }) => {
-      const st = gravState[dept];
+      const dept = el.dataset.dept;
+      const st   = gravState[dept];
       let targetScale = 1, targetTx = 0, targetTy = 0;
 
       if (inSkills) {
-        const d = Math.hypot(cx - mx, cy - my);
-        const isActive = treeState === 'detail' && activeDept === dept;
+        let cx, cy;
 
-        if (treeState === 'overview' && d < GRAV_RADIUS && d > 1) {
+        if (isOverview) {
+          // No DOM read — use cached canvas position + stored node coords
+          const pos = nodePositions[dept];
+          cx = cachedCanvasRect.left + pos.ax;
+          cy = cachedCanvasRect.top  + pos.ay;
+        } else if (activeDept === dept) {
+          // Zoomed active node: one DOM read (position shifts with zoom)
+          const r = el.getBoundingClientRect();
+          cx = r.left + r.width / 2 - st.tx;
+          cy = r.top  + r.height / 2 - st.ty;
+        } else {
+          // Inactive node in detail — snap to rest immediately
+          if (st.scale !== 1 || st.tx !== 0 || st.ty !== 0) {
+            st.scale = 1; st.tx = 0; st.ty = 0;
+            el.style.setProperty('--prox-scale', 1);
+            el.style.setProperty('--prox-tx', '0px');
+            el.style.setProperty('--prox-ty', '0px');
+          }
+          return;
+        }
+
+        const d = Math.hypot(cx - mx, cy - my);
+
+        if (isOverview && d < GRAV_RADIUS && d > 1) {
           const proximity = 1 - d / GRAV_RADIUS;
           const ease = proximity * proximity;
-
           targetScale = 1 + ease * (GRAV_MAX_SCALE - 1);
-
           const pull = ease * GRAV_MAX_PULL;
           targetTx = ((mx - cx) / d) * pull;
           targetTy = ((my - cy) / d) * pull;
-        } else if (isActive && d < GRAV_RADIUS && d > 1) {
+        } else if (!isOverview && d < GRAV_RADIUS && d > 1) {
           const proximity = 1 - d / GRAV_RADIUS;
           const ease = proximity * proximity;
           targetScale = 1 + ease * 0.12;
@@ -1398,14 +1410,14 @@ function initSkillsScrollCapture() {
   const fillEl = document.getElementById('skills-progress-fill');
   const STEPS = ORBIT_SCROLL_ORDER.length;
   function getProgress() {
-    const rect = skillsSection.getBoundingClientRect();
-    const scrollable = skillsSection.offsetHeight - window.innerHeight;
-    return scrollable > 0 ? Math.max(0, Math.min(1, -rect.top / scrollable)) : 0;
+    const scrollable = skillsOffsetHeight - window.innerHeight;
+    const scrolled   = window.scrollY - skillsOffsetTop;
+    return scrollable > 0 ? Math.max(0, Math.min(1, scrolled / scrollable)) : 0;
   }
 
   function isInStickyZone() {
-    const rect = skillsSection.getBoundingClientRect();
-    return rect.top <= 2 && rect.bottom >= window.innerHeight - 2;
+    const scrolled = window.scrollY - skillsOffsetTop;
+    return scrolled >= -2 && scrolled <= skillsOffsetHeight - window.innerHeight + 2;
   }
 
   // Map scroll progress to orbit step; re-check after each rotation finishes
@@ -1416,6 +1428,7 @@ function initSkillsScrollCapture() {
   }
 
   window.addEventListener('scroll', () => {
+    updateCanvasRect();
     const p = getProgress();
     if (!skillsPanelShown && isInStickyZone()) {
       skillsPanelShown = true;
@@ -1466,6 +1479,8 @@ window.addEventListener('resize', () => {
   resizeTimer = setTimeout(() => {
     resizeStarsCanvas();
     positionNodes();
+    cacheSkillsBounds();
+    updateCanvasRect();
     if (treeState === 'detail' && activeDept) applyZoom(activeDept);
     updateHint();
   }, 150);
@@ -1596,6 +1611,8 @@ function init() {
   setLanguage(currentLang, 1350);
   resizeStarsCanvas();
   positionNodes();
+  cacheSkillsBounds();
+  updateCanvasRect();
   updateNodeLabels();
   addOrbitLabels();
   initSkillsDetail();
@@ -1696,8 +1713,7 @@ if (document.readyState === 'loading') {
   if (!bar) return;
   function update() {
     const max = document.documentElement.scrollHeight - window.innerHeight;
-    const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
-    bar.style.width = pct + '%';
+    bar.style.transform = 'scaleX(' + (max > 0 ? window.scrollY / max : 0) + ')';
   }
   window.addEventListener('scroll', update, { passive: true });
   window.addEventListener('resize', update, { passive: true });
