@@ -217,56 +217,25 @@ img { max-width: 100%; display: block; }
 
 .sha-top, .sha-bot {
   transform-box: fill-box;
-  transform-origin: center top;
+  transform-origin: center center;
   transition: opacity 0.3s ease;
-}
-
-.sha-trail {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%) scaleY(0);
-  transform-origin: bottom center;
-  width: 1.5px;
-  height: 46px;
-  background: linear-gradient(to top, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.5) 40%, transparent 100%);
-  pointer-events: none;
-  opacity: 0;
 }
 
 #scroll-hint.scrolling .scroll-hint__arrow {
   animation-play-state: paused;
 }
 
-#scroll-hint.scrolling .sha-bot {
-  animation: streakUp 0.46s cubic-bezier(0.3, 0, 0.7, 1) forwards;
+.sha-fill {
+  clip-path: inset(100% 0 0 0);
 }
 
-#scroll-hint.scrolling .sha-top {
-  animation: fadeOutChev 0.46s ease forwards;
+#scroll-hint.scrolling .sha-fill {
+  animation: fillGrow 0.45s ease-out forwards;
 }
 
-#scroll-hint.scrolling .sha-trail {
-  animation: trailGrow 0.52s ease forwards;
-}
-
-@keyframes streakUp {
-  0%   { transform: translateY(0);     opacity: 1; color: var(--fg-4); }
-  18%  { opacity: 1; color: #ffffff; }
-  55%  { transform: translateY(-30px); opacity: 0.7; }
-  100% { transform: translateY(-44px); opacity: 0; }
-}
-
-@keyframes fadeOutChev {
-  0%   { opacity: 1; }
-  25%  { opacity: 1; }
-  100% { opacity: 0; }
-}
-
-@keyframes trailGrow {
-  0%   { transform: translateX(-50%) scaleY(0); opacity: 1; }
-  45%  { transform: translateX(-50%) scaleY(1); opacity: 1; }
-  100% { transform: translateX(-50%) scaleY(1); opacity: 0; }
+@keyframes fillGrow {
+  from { clip-path: inset(100% 0 0 0); }
+  to   { clip-path: inset(0% 0 0 0); }
 }
 
 #scroll-hint:hover .scroll-hint__arrow { color: var(--fg-3); }
@@ -289,16 +258,16 @@ img { max-width: 100%; display: block; }
   height: 26px;
   border-radius: 50%;
   background: conic-gradient(
-    rgba(160,160,160,0)    0deg,
-    rgba(160,160,160,0.04) 20deg,
-    rgba(160,160,160,0.12) 60deg,
-    rgba(160,160,160,0.28) 110deg,
-    rgba(160,160,160,0.55) 170deg,
-    rgba(160,160,160,0.78) 240deg,
-    rgba(160,160,160,0.92) 300deg,
-    rgba(160,160,160,1)    335deg,
-    rgba(160,160,160,1)    352deg,
-    rgba(160,160,160,0)    360deg
+    rgba(58,58,58,0)    0deg,
+    rgba(58,58,58,0.04) 20deg,
+    rgba(58,58,58,0.12) 60deg,
+    rgba(58,58,58,0.28) 110deg,
+    rgba(58,58,58,0.55) 170deg,
+    rgba(58,58,58,0.78) 240deg,
+    rgba(58,58,58,0.92) 300deg,
+    rgba(58,58,58,1)    335deg,
+    rgba(58,58,58,1)    352deg,
+    rgba(58,58,58,0)    360deg
   );
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
   mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
