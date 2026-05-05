@@ -28,7 +28,7 @@ const translations = {
     'contact.heading': 'Pojďme\nspolupracovat.',
     'contact.sub':     'Hledáš backend developera nebo chceš spolupracovat na projektu? Napiš mi.',
 
-    'footer.copy': '© 2025',
+    'footer.copy': '© 2026',
 
     'skill.backend.desc':    'Celkový backend stack — PHP/Laravel ekosystém, C#/.NET a vývojové nástroje.',
     'skill.php.desc':        'Primární backend jazyk. OOP, Composer, moderní PHP 8.x.',
@@ -83,7 +83,7 @@ const translations = {
     'contact.heading': 'Let\'s work\ntogether.',
     'contact.sub':     'Looking for a backend developer or want to collaborate on a project? Drop me a line.',
 
-    'footer.copy': '© 2025',
+    'footer.copy': '© 2026',
 
     'skill.backend.desc':    'The overall backend stack — PHP/Laravel ecosystem, C#/.NET and developer tooling.',
     'skill.php.desc':        'Primary backend language. OOP, Composer packages, modern PHP 8.x.',
@@ -299,9 +299,10 @@ let nodePositions = {}; // { deptId: { nx, ny } }
 let orbitOffset = 0;
 let orbitStep = 0;
 let isOrbitRotating = false;
+let rotateRafId = null;
 let skillsPanelShown = false;
 const ORBIT_SCROLL_ORDER = ['laravel', 'dotnet', 'tooling'];
-const ORBIT_ROTATION_MS = 480;
+const ORBIT_ROTATION_MS = 550;
 
 // Stars
 let stars = [];
@@ -550,27 +551,27 @@ function initSkillsDetail() {
 }
 
 function rotateToStep(step, onDone) {
-  if (isOrbitRotating) return;
+  // Interruptible: cancel any in-flight rotation and continue from current orbitOffset
+  if (rotateRafId !== null) {
+    cancelAnimationFrame(rotateRafId);
+    rotateRafId = null;
+  }
   isOrbitRotating = true;
 
-  const fromOffset = orbitOffset;
-  const toOffset   = step * 120;
-  const newDeptId  = ORBIT_SCROLL_ORDER[step];
-  orbitStep        = step;
+  const fromOffset  = orbitOffset;
+  const toOffset    = step * 120;
+  const newDeptId   = ORBIT_SCROLL_ORDER[step];
+  const stepChanged = orbitStep !== step;
+  orbitStep         = step;
 
   // Ease in-out cubic — smooth acceleration + deceleration along arc
   function ease(t) {
     return t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
   }
 
-  // Phase 1: slide panel out
-  skillWrap.classList.remove('active');
-
-  setTimeout(() => {
-    // Update content while panel is hidden
+  if (stepChanged) {
     showExp(newDeptId);
 
-    // Mark new planet active immediately (bright, iconSwap triggers)
     scene.querySelectorAll('.skill-node').forEach(el => {
       const isActive = el.dataset.dept === newDeptId;
       el.classList.toggle('active',   isActive);
@@ -580,36 +581,34 @@ function rotateToStep(step, onDone) {
     treeState  = 'detail';
     skillWrap.classList.remove('detail-left', 'detail-right');
     skillWrap.classList.add('detail-left'); // all steps land at 270° = left
+    skillWrap.classList.add('active');
     updateDots();
     updateHint();
+  }
 
-    // Freeze camera during arc animation (scene transform must not move)
-    scene.classList.add('no-transition');
+  // Freeze camera during arc animation (scene transform must not move)
+  scene.classList.add('no-transition');
 
-    // rAF loop: interpolate orbitOffset → planets follow the arc
-    const start = performance.now();
-    function frame(now) {
-      const t     = Math.min((now - start) / ORBIT_ROTATION_MS, 1);
-      orbitOffset = fromOffset + (toOffset - fromOffset) * ease(t);
-      positionNodes();
+  // rAF loop: interpolate orbitOffset → planets follow the arc
+  const start = performance.now();
+  function frame(now) {
+    const t     = Math.min((now - start) / ORBIT_ROTATION_MS, 1);
+    orbitOffset = fromOffset + (toOffset - fromOffset) * ease(t);
+    positionNodes();
 
-      if (t < 1) { requestAnimationFrame(frame); return; }
+    if (t < 1) { rotateRafId = requestAnimationFrame(frame); return; }
 
-      // Snap to exact final angle, re-enable scene transition, then zoom
-      orbitOffset = toOffset;
-      positionNodes();
-      scene.classList.remove('no-transition');
-      applyZoom(newDeptId);
+    rotateRafId = null;
+    orbitOffset = toOffset;
+    positionNodes();
+    scene.classList.remove('no-transition');
+    applyZoom(newDeptId);
 
-      // Phase 2: slide panel in
-      requestAnimationFrame(() => {
-        skillWrap.classList.add('active');
-        setTimeout(() => { isOrbitRotating = false; if (onDone) onDone(); }, 200);
-      });
-    }
+    isOrbitRotating = false;
+    if (onDone) onDone();
+  }
 
-    requestAnimationFrame(frame);
-  }, 100);
+  rotateRafId = requestAnimationFrame(frame);
 }
 
 function goDetail(deptId) {
@@ -1420,11 +1419,11 @@ function initSkillsScrollCapture() {
     return scrolled >= -2 && scrolled <= skillsOffsetHeight - window.innerHeight + 2;
   }
 
-  // Map scroll progress to orbit step; re-check after each rotation finishes
+  // Map scroll progress to orbit step; rotation is interruptible so we can retrigger anytime
   function syncStep() {
-    if (!isInStickyZone() || isOrbitRotating) return;
+    if (!isInStickyZone()) return;
     const targetStep = Math.min(Math.floor(getProgress() * STEPS), STEPS - 1);
-    if (targetStep !== orbitStep) rotateToStep(targetStep, syncStep);
+    if (targetStep !== orbitStep) rotateToStep(targetStep);
   }
 
   window.addEventListener('scroll', () => {
@@ -1720,106 +1719,3 @@ if (document.readyState === 'loading') {
   update();
 })();
 
-/* ============================================================
-   Page Snap — smooth wheel scroll (desktop only)
-   ============================================================ */
-(function initPageSnap() {
-  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
-
-  const DURATION    = 180;
-  const TRIGGER_MS  = 60;   // min ms between page changes (allows interrupting mid-animation)
-  const POST_MS     = 20;   // ms after animation fully ends — kills trackpad momentum tail
-
-  let currentIdx    = 0;
-  let rafId         = null;
-  let animEndedAt   = 0;
-  let lastTriggerAt = 0;
-
-  const hintEl    = document.getElementById('scroll-hint');
-  const spinnerEl = document.getElementById('page-spinner');
-
-  function easeOutCubic(t) {
-    return 1 - Math.pow(1 - t, 3);
-  }
-
-  function getTargets() {
-    return Array.from(document.querySelectorAll(
-      '.hero, .about, .skills, .skills__snap, .contact'
-    ));
-  }
-
-  function updateHintState() {
-    if (!hintEl) return;
-    hintEl.classList.toggle('hidden', currentIdx >= getTargets().length - 1);
-  }
-
-  function scrollToIdx(idx) {
-    const targets = getTargets();
-    idx = Math.max(0, Math.min(targets.length - 1, idx));
-    currentIdx = idx;
-
-    if (rafId) cancelAnimationFrame(rafId);
-
-    if (spinnerEl) {
-      spinnerEl.classList.remove('spinning');
-      void spinnerEl.offsetWidth;
-      spinnerEl.classList.add('spinning');
-    }
-
-    if (hintEl) {
-      hintEl.classList.add('scrolling');
-      setTimeout(() => hintEl.classList.remove('scrolling'), 560);
-    }
-
-
-    const startY  = window.scrollY;
-    const targetY = targets[idx].getBoundingClientRect().top + window.scrollY;
-    const dist    = targetY - startY;
-    const start   = performance.now();
-
-    function frame(now) {
-      const t = Math.min((now - start) / DURATION, 1);
-      window.scrollTo(0, startY + dist * easeOutCubic(t));
-      if (t < 1) {
-        rafId = requestAnimationFrame(frame);
-      } else {
-        animEndedAt = Date.now();
-        rafId       = null;
-        if (hintEl) updateHintState();
-      }
-    }
-    rafId = requestAnimationFrame(frame);
-  }
-
-  window.addEventListener('wheel', e => {
-    if (demoOpen) return;
-    e.preventDefault();
-
-    if (Math.abs(e.deltaY) < 5) return;
-
-    const now = Date.now();
-    if (now - lastTriggerAt < TRIGGER_MS) return;   // per-trigger cooldown
-    if (now - animEndedAt   < POST_MS)    return;   // post-animation momentum guard
-
-    const dir     = e.deltaY > 0 ? 1 : -1;
-    const targets = getTargets();
-    const next    = Math.max(0, Math.min(targets.length - 1, currentIdx + dir));
-    if (next === currentIdx) return;
-
-    lastTriggerAt = now;
-    scrollToIdx(next);
-  }, { passive: false });
-
-  if (hintEl) {
-    hintEl.addEventListener('click', () => {
-      const targets = getTargets();
-      const next = Math.min(targets.length - 1, currentIdx + 1);
-      if (next !== currentIdx) {
-        lastTriggerAt = Date.now();
-        scrollToIdx(next);
-      }
-    });
-  }
-
-  updateHintState();
-}());
