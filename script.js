@@ -10,7 +10,7 @@ const translations = {
     'hero.role': 'Junior Backend Developer',
 
     'about.heading':    'Kód, který obstojí v čase.',
-    'about.p1': 'Jsem backend developer se zaměřením na PHP/Laravel a C#/.NET. Rád navrhuju čistá API, pracuju s relačními databázemi a automatizuju rutinní úkoly pomocí moderních AI nástrojů.',
+    'about.p1': 'Jsem backend developer se zaměřením na PHP/Laravel a C#/.NET. Rád navrhuju čistá API a pracuju s relačními databázemi.',
     'about.p2': 'Ve volném čase prozkoumávám nové frameworky, přispívám do open-source projektů a zdokonaluji své pracovní postupy s nástroji jako Cursor a Claude Code.',
     'about.p3': 'Věřím v psaní kódu, který je snadno čitelný, testovatelný a udržovatelný — nejen kódu, který funguje.',
     'about.key-name':     'Jméno',
@@ -22,37 +22,11 @@ const translations = {
     'about.val-status':   'Dostupný',
 
     'skills.heading': 'Stack & technologie.',
-    'skills.hint':    'Klikni na oblast pro detail',
-    'skills.back':    'Přehled',
 
     'contact.heading': 'Pojďme\nspolupracovat.',
     'contact.sub':     'Hledáš backend developera nebo chceš spolupracovat na projektu? Napiš mi.',
 
     'footer.copy': '© 2026',
-
-    'skill.backend.desc':    'Celkový backend stack — PHP/Laravel ekosystém, C#/.NET a vývojové nástroje.',
-    'skill.php.desc':        'Primární backend jazyk. OOP, Composer, moderní PHP 8.x.',
-    'skill.laravel.desc':    'Hlavní PHP framework. MVC, middleware, service providers, Queues.',
-    'skill.eloquent.desc':   'Laravel ORM — vztahy, scopy, mutátory, lazy loading.',
-    'skill.blade.desc':      'Šablonovací engine Laravelu. Komponenty, direktivy, dědičnost layoutů.',
-    'skill.artisan.desc':    'CLI nástroj Laravelu. Vlastní příkazy, migrace, seedy, tinker.',
-    'skill.csharp.desc':     'Staticky typovaný jazyk .NET ekosystému. LINQ, async/await, generika.',
-    'skill.dotnet.desc':     'ASP.NET Core framework. Dependency injection, middleware pipeline.',
-    'skill.ef.desc':         'Entity Framework Core — Code First migrace, LINQ dotazy.',
-    'skill.restapi.desc':    'Návrh RESTful API. HTTP metody, stavové kódy, versioning, JWT.',
-    'skill.db.desc':         'MySQL a PostgreSQL. Návrh schématu, indexy, relační dotazy.',
-    'skill.git.desc':        'Verzovací systém. Branching strategie, PR workflow, GitHub.',
-    'skill.ai.desc':         'AI nástroje pro zvýšení produktivity při vývoji softwaru.',
-    'skill.cursor.desc':     'AI-powered editor. Inline návrhy, chat s codebase kontextem.',
-    'skill.claudecode.desc': 'Claude Code CLI — autonomní AI asistent pro vývoj softwaru.',
-
-    'skill.group.root':      'Kořen',
-    'skill.group.lang':      'Jazyk',
-    'skill.group.framework': 'Framework',
-    'skill.group.lib':       'Knihovna',
-    'skill.group.concept':   'Koncept',
-    'skill.group.db':        'Databáze',
-    'skill.group.tool':      'Nástroj',
   },
 
   en: {
@@ -63,7 +37,7 @@ const translations = {
     'hero.role': 'Junior Backend Developer',
 
     'about.heading':    'Code that stands the test of time.',
-    'about.p1': 'I\'m a backend developer focused on PHP/Laravel and C#/.NET. I enjoy designing clean APIs, working with relational databases and automating repetitive tasks with modern AI tools.',
+    'about.p1': 'I\'m a backend developer focused on PHP/Laravel and C#/.NET. I enjoy designing clean APIs and working with relational databases.',
     'about.p2': 'In my spare time I explore new frameworks, contribute to open-source projects and sharpen my workflows with tools like Cursor and Claude Code.',
     'about.p3': 'I believe in writing code that is readable, testable and maintainable — not just code that works.',
     'about.key-name':     'Name',
@@ -75,39 +49,11 @@ const translations = {
     'about.val-status':   'Available',
 
     'skills.heading': 'Stack & technologies.',
-    'skills.hint':    'Click a section for details',
-    'skills.back':    'Overview',
-
-
 
     'contact.heading': 'Let\'s work\ntogether.',
     'contact.sub':     'Looking for a backend developer or want to collaborate on a project? Drop me a line.',
 
     'footer.copy': '© 2026',
-
-    'skill.backend.desc':    'The overall backend stack — PHP/Laravel ecosystem, C#/.NET and developer tooling.',
-    'skill.php.desc':        'Primary backend language. OOP, Composer packages, modern PHP 8.x.',
-    'skill.laravel.desc':    'Main PHP framework. MVC architecture, middleware, service providers, Queues.',
-    'skill.eloquent.desc':   'Laravel ORM — relationships, scopes, mutators, lazy loading.',
-    'skill.blade.desc':      'Laravel\'s templating engine. Components, directives, layout inheritance.',
-    'skill.artisan.desc':    'Laravel\'s CLI tool. Custom commands, migrations, seeders, tinker.',
-    'skill.csharp.desc':     'Statically typed language for the .NET ecosystem. LINQ, async/await, generics.',
-    'skill.dotnet.desc':     'ASP.NET Core framework. Dependency injection, middleware pipeline.',
-    'skill.ef.desc':         'Entity Framework Core — Code First migrations, LINQ queries.',
-    'skill.restapi.desc':    'Designing RESTful APIs. HTTP methods, status codes, versioning, JWT.',
-    'skill.db.desc':         'MySQL and PostgreSQL. Schema design, indexes, relational queries.',
-    'skill.git.desc':        'Version control. Branching strategies, PR workflow, GitHub.',
-    'skill.ai.desc':         'AI tools for boosting software development productivity.',
-    'skill.cursor.desc':     'AI-powered editor. Inline suggestions, chat with codebase context.',
-    'skill.claudecode.desc': 'Claude Code CLI — autonomous AI assistant for software development.',
-
-    'skill.group.root':      'Root',
-    'skill.group.lang':      'Language',
-    'skill.group.framework': 'Framework',
-    'skill.group.lib':       'Library',
-    'skill.group.concept':   'Concept',
-    'skill.group.db':        'Database',
-    'skill.group.tool':      'Tool',
   }
 };
 
@@ -133,7 +79,6 @@ function setLanguage(lang, roleDelay = 0) {
     }
   });
 
-  updateHint();
   if (typeof updateNodeLabels === 'function') updateNodeLabels();
   if (typeof activeDept !== 'undefined' && activeDept !== null) showExp(activeDept);
   typeRole(t('hero.role'), roleDelay);
@@ -254,15 +199,15 @@ const DEPTS = [
 ];
 
 const ORBIT_LABELS = {
-  laravel: ['Laravel', 'PHP', 'Eloquent', 'Blade', 'Sanctum', 'Pest'],
+  laravel: ['Laravel', 'PHP', 'Eloquent', 'Sanctum', 'Pest'],
   dotnet:  ['C#', 'ASP.NET', 'EF Core', 'JWT', 'Swagger', 'LINQ'],
-  tooling: ['Git', 'Cursor', 'Claude', 'Docker', 'Composer', 'VS Code'],
+  tooling: ['Git', 'Claude', 'Composer', 'Postman', 'Docker'],
 };
 
 const EXPERIENCE = {
   laravel: {
-    cs: 'PHP a Laravel jsou moje primární technologie. Stavím RESTful API s Eloquent ORM, píšu autentizaci přes Sanctum, organizuju kód do service a repository vrstev a pokrývám funkce automatickými testy pomocí PHPUnit. Blade šablony používám pro admin panely a jednoduché frontendy.',
-    en: 'PHP and Laravel are my primary technologies. I build RESTful APIs with Eloquent ORM, implement authentication via Sanctum, organize code into service and repository layers, and cover features with PHPUnit tests. I use Blade templates for admin panels and lightweight frontends.',
+    cs: 'PHP a Laravel tvoří základ mého backend stacku. Navrhuji RESTful API nad Eloquent ORM, implementuji autentizaci přes Sanctum a udržuji čistou architekturu rozdělením logiky do Actions, Form Requests a InputData tříd. Kód pokrývám testy v Pestu s využitím factories.',
+    en: 'PHP and Laravel form the core of my backend stack. I design RESTful APIs on top of Eloquent ORM, implement authentication via Sanctum and maintain clean architecture by separating logic into Actions, Form Requests and InputData classes. I cover code with Pest tests using factories for test data.',
   },
   dotnet: {
     cs: 'V .NET ekosystému se zaměřuji na ASP.NET Core Web API — modeluji endpointy, pracuju s Entity Framework Core pro databázové operace a zabezpečuju rozhraní pomocí JWT tokenů. Ke každé aplikaci generuji Swagger dokumentaci pro snadné testování a onboarding.',
@@ -282,7 +227,6 @@ const skillWrap = document.getElementById('skills-container');
 const expPanel  = document.getElementById('skills-exp');
 const expTitle  = document.getElementById('skills-exp-title');
 const expText   = document.getElementById('skills-exp-text');
-const backBtn   = document.getElementById('skills-back') ?? { addEventListener: () => {} };
 const scene     = document.getElementById('skill-scene');
 const orbitRing = document.getElementById('orbit-ring');
 const starsCanvas = document.getElementById('stars-canvas');
@@ -523,7 +467,6 @@ function goOverview() {
     if (st) { st.scale = 1.18; st.tx = 0; st.ty = 0; }
   });
   skillWrap.classList.remove('detail-left', 'detail-right', 'active');
-  updateHint();
 }
 
 function initSkillsDetail() {
@@ -583,8 +526,7 @@ function rotateToStep(step, onDone) {
     skillWrap.classList.add('detail-left'); // all steps land at 270° = left
     skillWrap.classList.add('active');
     updateDots();
-    updateHint();
-  }
+    }
 
   // Freeze camera during arc animation (scene transform must not move)
   scene.classList.add('no-transition');
@@ -638,7 +580,6 @@ function goDetail(deptId) {
   requestAnimationFrame(() => skillWrap.classList.add('active'));
   triggerZoomEffects();
 
-  updateHint();
 }
 
 /* ============================================================
@@ -663,9 +604,6 @@ function initSkillEvents() {
 }
 
 
-backBtn.addEventListener('click', () => {
-  if (orbitStep > 0) rotateToStep(orbitStep - 1);
-});
 
 
 
@@ -1446,28 +1384,6 @@ function initSkillsScrollCapture() {
   });
 }
 
-/* ============================================================
-   Hint text
-   ============================================================ */
-function updateHint() {
-  const el = document.getElementById('skills-hint');
-  if (!el) return;
-  if (treeState === 'detail') {
-    if (orbitStep < ORBIT_SCROLL_ORDER.length - 1) {
-      el.style.opacity = '';
-      el.textContent = currentLang === 'cs' ? '↓ Scrolluj pro další technologie' : '↓ Scroll for more';
-    } else {
-      el.style.opacity = '';
-      el.textContent = currentLang === 'cs' ? '↓ Scrolluj dál' : '↓ Scroll to continue';
-    }
-  } else {
-    el.style.opacity = '';
-    const isTouch = window.matchMedia('(hover: none)').matches;
-    el.textContent = isTouch
-      ? (currentLang === 'cs' ? 'Klepni na oblast pro detail' : 'Tap a section for details')
-      : (currentLang === 'cs' ? 'Klikni na oblast pro detail' : 'Click a section for details');
-  }
-}
 
 /* ============================================================
    Resize
@@ -1481,8 +1397,7 @@ window.addEventListener('resize', () => {
     cacheSkillsBounds();
     updateCanvasRect();
     if (treeState === 'detail' && activeDept) applyZoom(activeDept);
-    updateHint();
-  }, 150);
+    }, 150);
 }, { passive: true });
 
 /* ============================================================
@@ -1494,7 +1409,7 @@ const TERM_SEQUENCES = [
       { prompt: '~', cmd: 'whoami', output: [
         'name:     Vojtěch Kocourek',
         'role:     Junior Backend Dev',
-        'location: Prague, CZ',
+        'location: Pardubice, CZ',
       ]},
     ],
   },
@@ -1511,9 +1426,9 @@ const TERM_SEQUENCES = [
     commands: [
       { prompt: '~',         cmd: 'cd /projects', output: [] },
       { prompt: '/projects', cmd: 'ls',           output: [
-        'Laravel REST API/',
-        'Laravel CMS/',
-        '.NET Web API/',
+        'lucky-kids/',
+        'vip-benefit-club/',
+        'trilobit/',
       ]},
     ],
   },
@@ -1522,7 +1437,7 @@ const TERM_SEQUENCES = [
       { prompt: '~', cmd: 'cat skills.txt', output: [
         'PHP · Laravel · Eloquent',
         'C# · ASP.NET · EF Core',
-        'Git · Docker · Claude',
+        'Git · Composer · Claude',
       ]},
     ],
   },
@@ -1619,7 +1534,6 @@ function init() {
   initSkillsDots();
   initSkillsScrollCapture();
   startIntro();
-  updateHint();
 
   lastFrame = performance.now();
   rafId = requestAnimationFrame(animateStars);
