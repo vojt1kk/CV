@@ -11,7 +11,7 @@ const translations = {
 
     'about.heading':    'Kód, který obstojí v čase.',
     'about.p1': 'Jsem backend developer se zaměřením na PHP/Laravel a C#/.NET. Rád navrhuju čistá API a pracuju s relačními databázemi.',
-    'about.p2': 'Ve volném čase prozkoumávám nové frameworky, přispívám do open-source projektů a zdokonaluji své pracovní postupy s nástroji jako Cursor a Claude Code.',
+    'about.p2': 'Ve volném čase prozkoumávám nové frameworky a zdokonaluji své pracovní postupy s nástroji jako Cursor a Claude Code.',
     'about.p3': 'Věřím v psaní kódu, který je snadno čitelný, testovatelný a udržovatelný — nejen kódu, který funguje.',
     'about.key-name':     'Jméno',
     'about.key-role':     'Role',
@@ -38,7 +38,7 @@ const translations = {
 
     'about.heading':    'Code that stands the test of time.',
     'about.p1': 'I\'m a backend developer focused on PHP/Laravel and C#/.NET. I enjoy designing clean APIs and working with relational databases.',
-    'about.p2': 'In my spare time I explore new frameworks, contribute to open-source projects and sharpen my workflows with tools like Cursor and Claude Code.',
+    'about.p2': 'In my spare time I explore new frameworks and sharpen my workflows with tools like Cursor and Claude Code.',
     'about.p3': 'I believe in writing code that is readable, testable and maintainable — not just code that works.',
     'about.key-name':     'Name',
     'about.key-role':     'Role',
@@ -200,7 +200,7 @@ const DEPTS = [
 
 const ORBIT_LABELS = {
   laravel: ['Laravel', 'PHP', 'Eloquent', 'Sanctum', 'Pest'],
-  dotnet:  ['C#', 'ASP.NET', 'EF Core', 'JWT', 'Swagger', 'LINQ'],
+  dotnet:  ['C#', 'ASP.NET', 'EF Core', 'MediatR', 'FluentValidation', 'xUnit'],
   tooling: ['Git', 'Claude', 'Composer', 'Postman', 'Docker'],
 };
 
@@ -210,12 +210,12 @@ const EXPERIENCE = {
     en: 'PHP and Laravel form the core of my backend stack. I design RESTful APIs on top of Eloquent ORM, implement authentication via Sanctum and maintain clean architecture by separating logic into Actions, Form Requests and InputData classes. I cover code with Pest tests using factories for test data.',
   },
   dotnet: {
-    cs: 'V .NET ekosystému se zaměřuji na ASP.NET Core Web API — modeluji endpointy, pracuju s Entity Framework Core pro databázové operace a zabezpečuju rozhraní pomocí JWT tokenů. Ke každé aplikaci generuji Swagger dokumentaci pro snadné testování a onboarding.',
-    en: 'In the .NET ecosystem I focus on ASP.NET Core Web API — I design endpoints, use Entity Framework Core for database access, and secure APIs with JWT tokens. Every project includes Swagger documentation for easy testing and onboarding.',
+    cs: 'V .NET ekosystému stavím ASP.NET Core 9 Web API. Kód organizuji do features pomocí CQRS s MediatR, vstupy validuji přes FluentValidation a databázi spravuji přes EF Core. Funkce pokrývám integračními testy v xUnit, kde každý test běží proti reálné databázi v Dockeru.',
+    en: 'In the .NET ecosystem I build ASP.NET Core 9 Web APIs. I organize code into features using CQRS with MediatR, validate inputs via FluentValidation and manage the database with EF Core. I cover features with integration tests in xUnit, each running against a real database in Docker.',
   },
   tooling: {
-    cs: 'Git používám každodenně — feature branches, PR workflow, squash merging. Moderní AI nástroje jako Cursor a Claude Code jsou pevnou součástí mého denního workflow: urychlují psaní boilerplate, pomáhají s code review a automatizují rutinní refaktoring.',
-    en: 'I use Git every day — feature branches, PR workflow, squash merging. Modern AI tools like Cursor and Claude Code are a core part of my daily workflow: they speed up boilerplate writing, support code review, and automate routine refactoring.',
+    cs: 'Git používám každodenně — feature branches, PR workflow, merge. Moderní AI nástroje jako Cursor a Claude Code jsou pevnou součástí mého denního workflow: urychlují psaní opakujícího se kódu, pomáhají s code review a automatizují rutinní refaktoring.',
+    en: 'I use Git every day — feature branches, PR workflow, merging. Modern AI tools like Cursor and Claude Code are a core part of my daily workflow: they speed up repetitive code writing, support code review, and automate routine refactoring.',
   },
 };
 
@@ -436,10 +436,15 @@ function showExp(deptId) {
   const exp  = EXPERIENCE[deptId];
   const dept = DEPTS.find(d => d.id === deptId);
   if (!exp || !dept) return;
-  expTitle.textContent = dept.label[currentLang] || dept.label.en;
-  expText.textContent  = exp[currentLang] || exp.en;
   const demoBtn = document.getElementById('skills-demo-btn');
-  if (demoBtn) demoBtn.style.display = IDE_FILES[deptId] ? '' : 'none';
+
+  expText.classList.add('is-switching');
+  setTimeout(() => {
+    expTitle.textContent = dept.label[currentLang] || dept.label.en;
+    expText.textContent  = exp[currentLang] || exp.en;
+    if (demoBtn) demoBtn.style.display = IDE_FILES[deptId] ? '' : 'none';
+    expText.classList.remove('is-switching');
+  }, 180);
 }
 
 function triggerZoomEffects() {
@@ -1034,6 +1039,47 @@ public record CreateUserDto(
     string Name,
     string Email,
     string? Role);` },
+    { name: 'RegisterHandler.cs', code: `using MediatR;
+using Microsoft.EntityFrameworkCore;
+using TrilobitCS.Auth;
+using TrilobitCS.Data;
+using TrilobitCS.Models;
+
+namespace TrilobitCS.Features.Auth;
+
+public record RegisterCommand(
+    string Email,
+    string Nickname,
+    string Password) : IRequest<AuthResponse>;
+
+public class RegisterHandler(
+    AppDbContext db,
+    BcryptPasswordHasher hasher,
+    JwtTokenService jwt)
+    : IRequestHandler<RegisterCommand, AuthResponse>
+{
+    public async Task<AuthResponse> Handle(
+        RegisterCommand cmd, CancellationToken ct)
+    {
+        if (await db.Users.AnyAsync(u => u.Email == cmd.Email, ct))
+            throw new ConflictException("errors.email_taken");
+
+        if (await db.Users.AnyAsync(u => u.Nickname == cmd.Nickname, ct))
+            throw new ConflictException("errors.nickname_taken");
+
+        var user = new User
+        {
+            Email    = cmd.Email,
+            Nickname = cmd.Nickname,
+            Password = hasher.Hash(cmd.Password),
+        };
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync(ct);
+
+        return jwt.IssueTokens(user);
+    }
+}` },
   ],
 };
 

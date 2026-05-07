@@ -557,6 +557,7 @@ img { max-width: 100%; display: block; }
    ============================================================ */
 .about {
   height: 100svh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -1011,6 +1012,12 @@ img { max-width: 100%; display: block; }
   font-size: 0.88rem;
   color: var(--fg-2);
   line-height: 1.8;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.skills__exp-text.is-switching {
+  opacity: 0;
+  transform: translateY(6px);
 }
 
 /* Demo CTA button in experience panel */
@@ -1480,6 +1487,7 @@ img { max-width: 100%; display: block; }
    ============================================================ */
 .contact {
   height: 100svh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: center;
