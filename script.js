@@ -22,6 +22,7 @@ const translations = {
     'about.val-status':   'Dostupný',
 
     'skills.heading': 'Stack & technologie.',
+    'skills.demo':    'Zobrazit demo',
 
     'contact.heading': 'Pojďme\nspolupracovat.',
     'contact.sub':     'Hledáš backend developera nebo chceš spolupracovat na projektu? Napiš mi.',
@@ -49,6 +50,7 @@ const translations = {
     'about.val-status':   'Available',
 
     'skills.heading': 'Stack & technologies.',
+    'skills.demo':    'Show demo',
 
     'contact.heading': 'Let\'s work\ntogether.',
     'contact.sub':     'Looking for a backend developer or want to collaborate on a project? Drop me a line.',
@@ -79,7 +81,13 @@ function setLanguage(lang, roleDelay = 0) {
     }
   });
 
-  if (typeof updateNodeLabels === 'function') updateNodeLabels();
+  document.querySelectorAll('[data-mobile-exp]').forEach(el => {
+    const deptId = el.dataset.mobileExp;
+    if (EXPERIENCE && EXPERIENCE[deptId]) {
+      el.textContent = EXPERIENCE[deptId][lang] || EXPERIENCE[deptId].en;
+    }
+  });
+
   if (typeof activeDept !== 'undefined' && activeDept !== null) showExp(activeDept);
   typeRole(t('hero.role'), roleDelay);
 }
@@ -111,82 +119,6 @@ function typeRole(text, delay) {
   }
 
   typeRoleTimer = setTimeout(typeNext, delay);
-}
-
-/* ============================================================
-   Hero — Typewriter (Option 3)
-   ============================================================ */
-
-/* ============================================================
-   Hero — Terminal Intro (Option 6 — saved for later)
-   ============================================================ */
-const TERMINAL_SEQ = [
-  { text: 'Debian GNU/Linux 12 (bookworm)',          cls: 'sys', at:    0 },
-  { text: 'vojtech-portfolio tty1',                  cls: 'sys', at:  220 },
-  { text: '',                                        cls: '',    at:  620 },
-  { text: 'vojtech-portfolio login: vojtech',        cls: 'cmd', at: 1050, type: true },
-  { text: 'Password: ········',                      cls: 'sys', at: 2150 },
-  { text: '',                                        cls: '',    at: 2400 },
-  { text: 'Welcome to vojtech-portfolio.',           cls: 'sys', at: 2750 },
-  { text: 'Last login: Wed Mar 18 21:40:12 2026',    cls: 'sys', at: 2960 },
-  { text: '',                                        cls: '',    at: 3160 },
-  { text: 'vojtech@portfolio:~$ whoami',             cls: 'cmd', at: 3600, type: true },
-  { text: 'Vojtěch Kocourek',                        cls: 'out', at: 4460 },
-  { text: '',                                        cls: '',    at: 4660 },
-  { text: 'vojtech@portfolio:~$ cat .role',          cls: 'cmd', at: 5060, type: true },
-  { text: 'Backend Developer',                       cls: 'out', at: 5870 },
-  { text: '',                                        cls: '',    at: 6070 },
-  { text: 'vojtech@portfolio:~$ ',                   cls: 'cmd', at: 6500, cursor: true },
-];
-
-let _tTimers    = [];
-let _tIntervals = [];
-
-function clearTerminalTimers() {
-  _tTimers.forEach(clearTimeout);
-  _tIntervals.forEach(clearInterval);
-  _tTimers = []; _tIntervals = [];
-}
-
-function runTerminalIntro() {
-  const el = document.getElementById('hero-terminal');
-  if (!el) return;
-  clearTerminalTimers();
-  el.innerHTML = '';
-
-  const reduced  = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const CHAR_MS  = 28;
-
-  TERMINAL_SEQ.forEach(item => {
-    const id = setTimeout(() => {
-      const span = document.createElement('span');
-      span.className = 'tline' + (item.cls ? ` tline--${item.cls}` : '');
-
-      if (item.cursor) {
-        span.textContent = item.text;
-        const cur = document.createElement('span');
-        cur.className = 'tcursor';
-        span.appendChild(cur);
-        el.appendChild(span);
-        return;
-      }
-
-      if (item.type && !reduced) {
-        span.textContent = '';
-        el.appendChild(span);
-        let i = 0;
-        const iv = setInterval(() => {
-          if (i < item.text.length) { span.textContent += item.text[i++]; }
-          else clearInterval(iv);
-        }, CHAR_MS);
-        _tIntervals.push(iv);
-      } else {
-        span.textContent = item.text;
-        el.appendChild(span);
-      }
-    }, reduced ? 0 : item.at);
-    _tTimers.push(id);
-  });
 }
 
 /* ============================================================
@@ -232,7 +164,11 @@ const orbitRing = document.getElementById('orbit-ring');
 const starsCanvas = document.getElementById('stars-canvas');
 const starsCtx  = starsCanvas.getContext('2d');
 
-let isMobile   = false;
+// Single source of truth for mobile breakpoint — matches CSS 768px
+const mobileQuery = window.matchMedia('(max-width: 767px)');
+let isMobile = mobileQuery.matches;
+mobileQuery.addEventListener('change', e => { isMobile = e.matches; });
+
 let treeState  = 'overview'; // 'overview' | 'detail'
 let activeDept = null;
 
@@ -292,7 +228,7 @@ function generateStars() {
 function resizeStarsCanvas() {
   const dpr = window.devicePixelRatio || 1;
   starsW = skillWrap.clientWidth;
-  isMobile = starsW < 600;
+  // isMobile kept live via matchMedia listener — no need to re-read here
   // Let flex: 1 on canvas-wrap determine the height, read it from DOM
   starsH = Math.max(skillWrap.clientHeight || (window.innerHeight - 240), isMobile ? 280 : 360);
 
@@ -394,10 +330,6 @@ function resetZoom() {
 /* ============================================================
    Label init
    ============================================================ */
-function updateNodeLabels() {
-  // Labels replaced by SVG icons; no-op
-}
-
 function addOrbitLabels() {
   scene.querySelectorAll('.skill-node').forEach(el => {
     const labels = ORBIT_LABELS[el.dataset.dept] || [];
@@ -1047,161 +979,187 @@ final readonly class VoucherSavingHandler
 }` },
   ],
   dotnet: [
-    { name: 'UsersController.cs', code: `using Microsoft.AspNetCore.Mvc;
-using MyApp.Services;
-using MyApp.Models;
+    { name: 'AuthController.cs', code: `using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using TrilobitCS.Features.Auth;
+using TrilobitCS.Requests;
+using TrilobitCS.Responses;
 
-namespace MyApp.Controllers;
+namespace TrilobitCS.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class UsersController : ControllerBase
+[Route("api/auth")]
+public class AuthController : ControllerBase
 {
-    private readonly IUserService _userService;
+    private readonly IMediator _mediator;
 
-    public UsersController(IUserService userService)
+    public AuthController(IMediator mediator)
     {
-        _userService = userService;
+        _mediator = mediator;
     }
 
-    // GET /api/users
-    [HttpGet]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] string? search,
-        [FromQuery] int perPage = 15)
+    // POST /api/auth/register
+    /// <summary>Register a new user</summary>
+    /// <response code="200">Returns access token and refresh token</response>
+    /// <response code="422">Invalid data (password mismatch, duplicate email/nickname)</response>
+    [HttpPost("register")]
+    [ProducesResponseType(typeof(AuthResponse), 200)]
+    [ProducesResponseType(422)]
+    public async Task<IActionResult> Register(RegisterRequest request)
+        => Ok(await _mediator.Send(new RegisterCommand(request)));
+
+    // POST /api/auth/login
+    /// <summary>Log in with nickname and password</summary>
+    /// <response code="200">Returns access token and refresh token</response>
+    /// <response code="401">Invalid credentials</response>
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(AuthResponse), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> Login(LoginRequest request)
+        => Ok(await _mediator.Send(new LoginCommand(request)));
+
+    // POST /api/auth/refresh
+    /// <summary>Exchange a refresh token for a new token pair (rotation)</summary>
+    /// <response code="200">Returns new access token and refresh token</response>
+    /// <response code="401">Invalid or already used refresh token</response>
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(AuthResponse), 200)]
+    [ProducesResponseType(401)]
+    public async Task<IActionResult> Refresh(RefreshRequest request)
+        => Ok(await _mediator.Send(new RefreshCommand(request)));
+
+    // POST /api/auth/logout
+    /// <summary>Log out — revoke the refresh token</summary>
+    /// <response code="204">Token successfully revoked</response>
+    /// <response code="404">Token not found</response>
+    [HttpPost("logout")]
+    [ProducesResponseType(204)]
+    [ProducesResponseType(404)]
+    public async Task<IActionResult> Logout(RefreshRequest request)
     {
-        var users = await _userService
-            .GetFilteredAsync(search, perPage);
-
-        return Ok(users);
-    }
-
-    // POST /api/users
-    [HttpPost]
-    public async Task<IActionResult> Create(
-        [FromBody] CreateUserDto dto)
-    {
-        var user = await _userService.CreateAsync(dto);
-
-        return CreatedAtAction(
-            nameof(GetAll), new { id = user.Id }, user);
+        await _mediator.Send(new LogoutCommand(request));
+        return NoContent();
     }
 }` },
-    { name: 'UserService.cs', code: `using Microsoft.EntityFrameworkCore;
-using MyApp.Data;
-using MyApp.Models;
-
-namespace MyApp.Services;
-
-public class UserService : IUserService
-{
-    private readonly AppDbContext _db;
-
-    public UserService(AppDbContext db)
-    {
-        _db = db;
-    }
-
-    public async Task<List<UserDto>> GetFilteredAsync(
-        string? search, int perPage)
-    {
-        var query = _db.Users.AsQueryable();
-
-        if (!string.IsNullOrEmpty(search))
-        {
-            query = query.Where(u =>
-                u.Name.Contains(search) ||
-                u.Email.Contains(search));
-        }
-
-        return await query
-            .Take(perPage)
-            .Select(u => new UserDto(u.Id, u.Name, u.Email))
-            .ToListAsync();
-    }
-
-    public async Task<UserDto> CreateAsync(CreateUserDto dto)
-    {
-        var user = new User
-        {
-            Name = dto.Name,
-            Email = dto.Email,
-            Role = dto.Role ?? "viewer"
-        };
-
-        _db.Users.Add(user);
-        await _db.SaveChangesAsync();
-
-        return new UserDto(user.Id, user.Name, user.Email);
-    }
-}` },
-    { name: 'User.cs', code: `using System.ComponentModel.DataAnnotations;
-
-namespace MyApp.Models;
-
-public class User
-{
-    public int Id { get; set; }
-
-    [Required]
-    [MaxLength(255)]
-    public string Name { get; set; } = string.Empty;
-
-    [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
-
-    [MaxLength(50)]
-    public string Role { get; set; } = "viewer";
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-
-public record UserDto(int Id, string Name, string Email);
-
-public record CreateUserDto(
-    string Name,
-    string Email,
-    string? Role);` },
-    { name: 'RegisterHandler.cs', code: `using MediatR;
+    { name: 'RegisterCommand.cs', code: `using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TrilobitCS.Auth;
 using TrilobitCS.Data;
+using TrilobitCS.Exceptions;
 using TrilobitCS.Models;
+using TrilobitCS.Requests;
+using TrilobitCS.Responses;
 
 namespace TrilobitCS.Features.Auth;
 
-public record RegisterCommand(
-    string Email,
-    string Nickname,
-    string Password) : IRequest<AuthResponse>;
+public record RegisterCommand(RegisterRequest Request) : IRequest<AuthResponse>;
 
-public class RegisterHandler(
-    AppDbContext db,
-    BcryptPasswordHasher hasher,
-    JwtTokenService jwt)
-    : IRequestHandler<RegisterCommand, AuthResponse>
+public class RegisterHandler : IRequestHandler<RegisterCommand, AuthResponse>
 {
-    public async Task<AuthResponse> Handle(
-        RegisterCommand cmd, CancellationToken ct)
+    private readonly AppDbContext _db;
+    private readonly BcryptPasswordHasher _hasher;
+    private readonly JwtTokenService _jwtTokenService;
+
+    public RegisterHandler(AppDbContext db, BcryptPasswordHasher hasher, JwtTokenService jwtTokenService)
     {
-        if (await db.Users.AnyAsync(u => u.Email == cmd.Email, ct))
+        _db = db;
+        _hasher = hasher;
+        _jwtTokenService = jwtTokenService;
+    }
+
+    public async Task<AuthResponse> Handle(RegisterCommand command, CancellationToken cancellationToken)
+    {
+        var request = command.Request;
+
+        if (await _db.Users.AnyAsync(u => u.Email == request.Email, cancellationToken))
             throw new ConflictException("errors.email_taken");
 
-        if (await db.Users.AnyAsync(u => u.Nickname == cmd.Nickname, ct))
+        if (await _db.Users.AnyAsync(u => u.Nickname == request.Nickname, cancellationToken))
             throw new ConflictException("errors.nickname_taken");
 
         var user = new User
         {
-            Email    = cmd.Email,
-            Nickname = cmd.Nickname,
-            Password = hasher.Hash(cmd.Password),
+            Nickname  = request.Nickname,
+            FirstName = request.FirstName,
+            LastName  = request.LastName,
+            Email     = request.Email,
+            Password  = _hasher.Hash(request.Password),
+            Gender    = request.Gender,
+            BirthDate = request.BirthDate,
+            CreatedAt = DateTime.UtcNow,
+        };
+        _db.Users.Add(user);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        var refreshToken = _jwtTokenService.GenerateRefreshToken(user);
+        _db.RefreshTokens.Add(refreshToken);
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return new AuthResponse(
+            AccessToken: _jwtTokenService.GenerateAccessToken(user),
+            RefreshToken: refreshToken.Token
+        );
+    }
+}` },
+    { name: 'JwtTokenService.cs', code: `using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using TrilobitCS.Models;
+
+namespace TrilobitCS.Auth;
+
+public class JwtTokenService
+{
+    private readonly IConfiguration _configuration;
+
+    public JwtTokenService(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
+    // Short-lived access token (15 minutes)
+    public string GenerateAccessToken(User user)
+    {
+        var claims = new[]
+        {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
 
-        db.Users.Add(user);
-        await db.SaveChangesAsync(ct);
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!))
+        {
+            KeyId = JwtSigningKey.KeyId,
+        };
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        return jwt.IssueTokens(user);
+        var expiresInMinutes = int.Parse(_configuration["Jwt:AccessTokenExpiresInMinutes"] ?? "15");
+
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Jwt:Issuer"],
+            audience: _configuration["Jwt:Audience"],
+            claims: claims,
+            expires: DateTime.UtcNow.AddMinutes(expiresInMinutes),
+            signingCredentials: credentials
+        );
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    // Long-lived refresh token stored in DB (180 days)
+    public RefreshToken GenerateRefreshToken(User user)
+    {
+        var expiresInDays = int.Parse(_configuration["Jwt:RefreshTokenExpiresInDays"] ?? "180");
+
+        return new RefreshToken
+        {
+            Token     = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64)),
+            UserId    = user.Id,
+            ExpiresAt = DateTime.UtcNow.AddDays(expiresInDays),
+            CreatedAt = DateTime.UtcNow,
+        };
     }
 }` },
   ],
@@ -1323,7 +1281,7 @@ function renderIDE(deptId) {
   const titleEl = document.querySelector('.ide__title');
   if (titleEl) titleEl.textContent = IDE_TITLES[deptId] || 'IDE';
 
-  const iconLetter = deptId === 'dotnet' ? 'C' : 'C';
+  const iconLetter = 'C';
 
   ideTabs.innerHTML = '';
   files.forEach((file, i) => {
@@ -1413,6 +1371,10 @@ demoBtn.addEventListener('click', () => {
   if (activeDept) openDemo(activeDept);
 });
 
+document.querySelectorAll('[data-mobile-dept]').forEach(btn => {
+  btn.addEventListener('click', () => openDemo(btn.dataset.mobileDept));
+});
+
 demoCloseBtn.addEventListener('click', () => closeDemo());
 demoBdrop.addEventListener('click', () => closeDemo());
 
@@ -1448,16 +1410,32 @@ window.addEventListener('scroll', () => {
   navbar.classList.toggle('scrolled', window.scrollY > 40);
 }, { passive: true });
 
-hamburger.addEventListener('click', () => {
+function closeNav() {
+  mainNav.classList.remove('open');
+  hamburger.setAttribute('aria-expanded', 'false');
+}
+
+hamburger.addEventListener('click', e => {
+  e.stopPropagation();
   const open = mainNav.classList.toggle('open');
-  hamburger.setAttribute('aria-expanded', open);
+  hamburger.setAttribute('aria-expanded', String(open));
 });
 
 mainNav.querySelectorAll('a').forEach(a => {
-  a.addEventListener('click', () => {
-    mainNav.classList.remove('open');
-    hamburger.setAttribute('aria-expanded', false);
-  });
+  a.addEventListener('click', closeNav);
+});
+
+document.addEventListener('click', e => {
+  if (mainNav.classList.contains('open') && !mainNav.contains(e.target) && e.target !== hamburger) {
+    closeNav();
+  }
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && mainNav.classList.contains('open')) {
+    closeNav();
+    hamburger.focus();
+  }
 });
 
 (function initActiveNav() {
@@ -1534,6 +1512,7 @@ function initSkillsScrollCapture() {
   }
 
   window.addEventListener('scroll', () => {
+    if (isMobile) return;
     updateCanvasRect();
     const p = getProgress();
     if (!skillsPanelShown && isInStickyZone()) {
@@ -1696,7 +1675,6 @@ function init() {
   positionNodes();
   cacheSkillsBounds();
   updateCanvasRect();
-  updateNodeLabels();
   addOrbitLabels();
   initSkillsDetail();
   initSkillEvents();
