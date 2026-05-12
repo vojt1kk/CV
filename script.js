@@ -164,8 +164,8 @@ const orbitRing = document.getElementById('orbit-ring');
 const starsCanvas = document.getElementById('stars-canvas');
 const starsCtx  = starsCanvas.getContext('2d');
 
-// Single source of truth for mobile breakpoint — matches CSS 768px
-const mobileQuery = window.matchMedia('(max-width: 767px)');
+// Single source of truth for mobile breakpoint — matches CSS 1024px (canvas hidden ≤1024)
+const mobileQuery = window.matchMedia('(max-width: 1024px)');
 let isMobile = mobileQuery.matches;
 mobileQuery.addEventListener('change', e => { isMobile = e.matches; });
 

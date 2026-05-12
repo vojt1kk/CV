@@ -96,7 +96,7 @@ img { max-width: 100%; display: block; }
    Utility
    ============================================================ */
 .container {
-  max-width: 1080px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem;
 }
@@ -357,7 +357,7 @@ img { max-width: 100%; display: block; }
 .hero__layout {
   display: flex;
   align-items: stretch;
-  gap: 9rem;
+  gap: 5rem;
   max-width: 1200px;
   width: 100%;
   padding: 0;
@@ -626,6 +626,12 @@ img { max-width: 100%; display: block; }
   flex-wrap: wrap;
   gap: 0.4rem;
   justify-content: flex-end;
+}
+
+/* about: tight 2 columns on 861-1024px */
+@media (max-width: 1024px) and (min-width: 861px) {
+  .about__bio  { padding-right: 2rem; }
+  .about__info { padding-left: 2rem; }
 }
 
 /* about: 2 columns only for ≥ 860px — at 769-859 it was cramped */
@@ -1636,9 +1642,11 @@ img { max-width: 100%; display: block; }
    Responsive  (mobile → desktop)
    ============================================================ */
 
-/* --- ≤ 1024px: small laptops --- */
+/* --- ≤ 1024px: small laptops / tablets --- */
 @media (max-width: 1024px) {
-  .hero__layout { gap: 5rem; }
+  .hero__layout { gap: 3rem; }
+  .hero__terminal { display: none; }
+  .hero__center { align-items: flex-start; }
 }
 
 /* --- ≤ 860px: tablets + hamburger menu --- */
@@ -1673,10 +1681,26 @@ img { max-width: 100%; display: block; }
   }
 }
 
+/* --- ≤ 1024px: tablets — switch skills to card layout --- */
+@media (max-width: 1024px) {
+  /* Skills: disable sticky scroll-driven layout, show static cards */
+  .skills__scroll-wrap { height: auto; }
+  .skills__sticky {
+    position: static;
+    height: auto;
+    padding: 4rem 0 2rem;
+    overflow: visible;
+  }
+  .skills__canvas-wrap { display: none; }
+  .skills__axis        { display: none; }
+  .skills__mobile-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 /* --- ≤ 768px: portrait tablets / large phones --- */
 @media (max-width: 768px) {
-  /* Hide terminal here so it doesn't appear stacked below text at 641-767px */
-  .hero__terminal { display: none; }
   .hero__layout { flex-direction: column; align-items: center; gap: 2rem; }
   .hero { text-align: center; }
   .hero__center { align-items: center; }
@@ -1688,17 +1712,8 @@ img { max-width: 100%; display: block; }
     overflow: visible;
   }
 
-  /* Skills: disable sticky scroll-driven layout, show static cards */
-  .skills__scroll-wrap { height: auto; }
-  .skills__sticky {
-    position: static;
-    height: auto;
-    padding: 4rem 0 2rem;
-    overflow: visible;
-  }
-  .skills__canvas-wrap { display: none; }
-  .skills__axis        { display: none; }
-  .skills__mobile-cards { display: grid; }
+  /* Skills: 2-column cards on portrait tablet */
+  .skills__mobile-cards { grid-template-columns: repeat(2, 1fr); }
 
   /* Contact: allow natural height */
   .contact {
