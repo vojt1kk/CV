@@ -206,8 +206,8 @@ const ORBIT_LABELS = {
 
 const EXPERIENCE = {
   laravel: {
-    cs: 'PHP a Laravel tvoří základ mého backend stacku. Navrhuji RESTful API nad Eloquent ORM, implementuji autentizaci přes Sanctum a udržuji čistou architekturu rozdělením logiky do Actions, Form Requests a InputData tříd. Kód pokrývám testy v Pestu s využitím factories.',
-    en: 'PHP and Laravel form the core of my backend stack. I design RESTful APIs on top of Eloquent ORM, implement authentication via Sanctum and maintain clean architecture by separating logic into Actions, Form Requests and InputData classes. I cover code with Pest tests using factories for test data.',
+    cs: 'PHP a Laravel tvoří základ mého backend stacku. Navrhuji RESTful API s Eloquent ORM, autentizaci řeším přes Laravel Passport a architekturu udržuji čistou pomocí Actions, Form Requests a InputData tříd. Filtrování, řazení a stránkování zajišťuji přes Spatie QueryBuilder. Kód pokrývám testy v Pestu s využitím factories.',
+    en: 'PHP and Laravel form the core of my backend stack. I design RESTful APIs with Eloquent ORM, handle authentication via Laravel Passport and keep architecture clean through Actions, Form Requests and InputData classes. Filtering, sorting and pagination are handled with Spatie QueryBuilder. I cover code with Pest tests using factories.',
   },
   dotnet: {
     cs: 'V .NET ekosystému stavím ASP.NET Core 9 Web API. Kód organizuji do features pomocí CQRS s MediatR, vstupy validuji přes FluentValidation a databázi spravuji přes EF Core. Funkce pokrývám integračními testy v xUnit, kde každý test běží proti reálné databázi v Dockeru.',
@@ -800,125 +800,249 @@ let demoOpen = false;
 
 const IDE_FILES = {
   laravel: [
-    { name: 'UserController.php', code: `<?php
+    { name: 'VoucherRequest.php', code: `<?php
 
-namespace App\\Http\\Controllers;
+declare(strict_types=1);
 
-use App\\Models\\User;
-use App\\Services\\UserService;
-use Illuminate\\Http\\JsonResponse;
-use Illuminate\\Http\\Request;
+namespace App\\Http\\Requests\\V2\\Vouchers;
 
-class UserController extends Controller
+use App\\Data\\Vouchers\\VoucherInputData;
+use App\\Enums\\Vouchers\\VoucherTypeEnum;
+use App\\Rules\\Vouchers\\VoucherHashUniqueRuleFactory;
+use App\\Support\\StrictType\\StrictDate;
+use App\\Validation\\Rule;
+use App\\ValueObjects\\Vouchers\\VoucherConfig;
+use Closure;
+use Illuminate\\Contracts\\Auth\\Access\\Gate;
+use Illuminate\\Foundation\\Http\\FormRequest;
+use VipBenefity\\Offer\\Models\\Offer;
+use VipBenefity\\Voucher\\Models\\Voucher;
+
+final class VoucherRequest extends FormRequest
+{
+    private ?Offer $offer = null;
+
+    public function authorize(Gate $gate): bool
+    {
+        return $gate->allows('create', Voucher::class);
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(
+        VoucherHashUniqueRuleFactory $voucherHashUniqueRuleFactory,
+    ): array {
+        $shouldNotUseOfferValidity = once(fn (): bool => ! $this->boolean('useOfferValidity'));
+
+        return [
+            'companyId' => Rule::integer()
+                ->nullable()
+                ->exists('companies'),
+
+            'label' => Rule::string()
+                ->required()
+                ->maxLength(255),
+
+            'hash' => Rule::string()
+                ->required()
+                ->maxLength(255)
+                ->closure($voucherHashUniqueRuleFactory->makeForPreset($this->offer?->id)),
+
+            'type' => Rule::string()
+                ->required()
+                ->enum(VoucherTypeEnum::class)
+                ->closure(function (string $attribute, string $value, Closure $fail): void {
+                    if ($value !== VoucherTypeEnum::Universal->value) {
+                        $fail('The type field must be universal.');
+                    }
+                }),
+
+            'claimMax' => Rule::integer()
+                ->required()
+                ->minValue(1),
+
+            'useOfferValidity' => Rule::boolean()
+                ->required(),
+
+            'dateFrom' => Rule::date()
+                ->requiredIf($shouldNotUseOfferValidity),
+
+            'dateTo' => Rule::date()
+                ->requiredIf($shouldNotUseOfferValidity),
+        ];
+    }
+
+    public function toInputData(): VoucherInputData
+    {
+        $validated = $this->validated();
+        $inputData = new VoucherInputData();
+
+        if ($this->offer instanceof Offer) {
+            $inputData->setOfferId($this->offer->id);
+        }
+
+        if (isset($validated['label'])) {
+            $inputData->setLabel($validated['label']);
+        }
+
+        if (isset($validated['type'])) {
+            $inputData->setType(VoucherTypeEnum::from($validated['type']));
+        }
+
+        if (isset($validated['hash'])) {
+            $inputData->setHash($validated['hash']);
+        }
+
+        if (isset($validated['claimMax'])) {
+            $inputData->setClaimedMax($validated['claimMax']);
+        }
+
+        if (isset($validated['useOfferValidity'])) {
+            $inputData->setUseOfferValidity($validated['useOfferValidity']);
+        }
+
+        if (array_key_exists('companyId', $validated)) {
+            $inputData->setCompanyId($validated['companyId']);
+        }
+
+        if (isset($validated['dateFrom'])) {
+            $inputData->setDateFrom(StrictDate::date($validated['dateFrom']));
+        }
+
+        if (isset($validated['dateTo'])) {
+            $inputData->setDateTo(StrictDate::date($validated['dateTo']));
+        }
+
+        $inputData->setConfig(new VoucherConfig(isLocked: true));
+
+        return $inputData;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->route('offer') instanceof Offer) {
+            $this->offer = $this->route('offer');
+        }
+    }
+}` },
+    { name: 'VoucherSetDataCommand.php', code: `<?php
+
+declare(strict_types=1);
+
+namespace App\\Console\\Commands\\Vouchers;
+
+use App\\Console\\Commands\\HasBenchmark;
+use App\\Console\\Commands\\HasDryRun;
+use Illuminate\\Console\\Command;
+use Illuminate\\Support\\Collection;
+use VipBenefity\\Voucher\\Models\\Voucher;
+
+final class VoucherSetDataCommand extends Command
+{
+    use HasBenchmark;
+    use HasDryRun;
+
+    protected $signature = 'voucher:set-data {--dry-run}';
+
+    protected $description = 'Set data for vouchers';
+
+    public function handle(): void
+    {
+        $this->initDryRun();
+
+        $this->benchmark(function (): void {
+            Voucher::query()->chunkById(500, function (Collection $vouchers): void {
+                $vouchers->each(function (Voucher $voucher): void {
+                    $this->process($voucher);
+                });
+            });
+        });
+    }
+
+    private function process(Voucher $voucher): void
+    {
+        $claimCount = $voucher->voucherClaims()->count();
+        $claimMax   = $voucher->max_used > 0 ? $voucher->max_used : 0;
+        $usageCount = $voucher->voucherClaims()->markAsUsed()->count();
+
+        $this->info(sprintf(
+            'Voucher ID: %d, claim_count: %d, claim_max: %d, usage_count: %d',
+            $voucher->id, $claimCount, $claimMax, $usageCount
+        ));
+
+        if ($this->isNotDryRun()) {
+            $voucher->update([
+                'used'        => $claimCount,
+                'max_used'    => $claimMax,
+                'claim_count' => $claimCount,
+                'claim_max'   => $claimMax,
+                'usage_count' => $usageCount,
+            ]);
+        }
+    }
+}` },
+    { name: 'VoucherObserver.php', code: `<?php
+
+declare(strict_types=1);
+
+namespace App\\Observers\\Vouchers;
+
+use App\\Observers\\Vouchers\\Handlers\\VoucherSavingHandler;
+use VipBenefity\\Voucher\\Models\\Voucher;
+
+final readonly class VoucherObserver
 {
     public function __construct(
-        private readonly UserService $userService
+        private VoucherSavingHandler $voucherSavingHandler
     ) {}
 
-    // GET /api/users
-    public function index(Request $request): JsonResponse
+    public function saving(Voucher $voucher): void
     {
-        $users = $this->userService->getFiltered(
-            $request->query('search'),
-            $request->integer('per_page', 15)
-        );
-
-        return response()->json($users);
-    }
-
-    // POST /api/users
-    public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'name'  => 'required|string|max:255',
-            'email' => 'required|email|unique:users',
-            'role'  => 'in:admin,editor,viewer',
-        ]);
-
-        $user = $this->userService->create($validated);
-
-        return response()->json($user, 201);
+        $this->voucherSavingHandler->handle($voucher);
     }
 }` },
-    { name: 'SyncUsersCommand.php', code: `<?php
+    { name: 'VoucherSavingHandler.php', code: `<?php
 
-namespace App\\Console\\Commands;
+declare(strict_types=1);
 
-use App\\Models\\User;
-use App\\Services\\ExternalApiService;
-use Illuminate\\Console\\Command;
+namespace App\\Observers\\Vouchers\\Handlers;
 
-class SyncUsersCommand extends Command
+use VipBenefity\\Voucher\\Models\\Voucher;
+
+final readonly class VoucherSavingHandler
 {
-    protected $signature = 'users:sync
-                            {--dry-run : Preview without saving}';
-
-    protected $description = 'Sync users from external API';
-
-    public function handle(ExternalApiService $api): int
+    public function handle(Voucher $voucher): void
     {
-        $this->info('Fetching users from API...');
+        $this->handleConfig($voucher);
+        $this->handleUseOfferValidity($voucher);
+    }
 
-        $external = $api->fetchUsers();
-        $synced   = 0;
+    private function handleConfig(Voucher $voucher): void
+    {
+        $config = $voucher->getConfig();
 
-        foreach ($external as $data) {
-            if ($this->option('dry-run')) {
-                $this->line("  [DRY] {$data['email']}");
-                continue;
-            }
-
-            User::updateOrCreate(
-                ['external_id' => $data['id']],
-                [
-                    'name'  => $data['name'],
-                    'email' => $data['email'],
-                ]
-            );
-
-            $synced++;
+        if ($config->type === null) {
+            $config = $config->merge(['type' => $voucher->type]);
         }
 
-        $this->info("Synced {$synced} users.");
-
-        return self::SUCCESS;
-    }
-}` },
-    { name: 'UserObserver.php', code: `<?php
-
-namespace App\\Observers;
-
-use App\\Models\\User;
-use App\\Notifications\\WelcomeNotification;
-use Illuminate\\Support\\Facades\\Cache;
-use Illuminate\\Support\\Facades\\Log;
-
-class UserObserver
-{
-    public function created(User $user): void
-    {
-        // Send welcome email
-        $user->notify(new WelcomeNotification());
-
-        Log::info('User created', [
-            'id'    => $user->id,
-            'email' => $user->email,
-        ]);
-    }
-
-    public function updated(User $user): void
-    {
-        // Invalidate cache on profile change
-        if ($user->isDirty(['name', 'email', 'role'])) {
-            Cache::forget("user:{$user->id}:profile");
+        if ($config->interval !== null && $config->intervalDays === null) {
+            $config = $config->merge(['intervalDays' => $config->interval->days()]);
         }
+
+        $voucher->setConfig($config);
     }
 
-    public function deleted(User $user): void
+    private function handleUseOfferValidity(Voucher $voucher): void
     {
-        Cache::forget("user:{$user->id}:profile");
+        if (! $voucher->isDirty('use_offer_validity')) {
+            return;
+        }
 
-        Log::info('User deleted', ['id' => $user->id]);
+        if (! $voucher->use_offer_validity) {
+            return;
+        }
+
+        $voucher->setDateFrom($voucher->offer->valid_from);
+        $voucher->setDateTo($voucher->offer->valid_until);
     }
 }` },
   ],
@@ -1090,27 +1214,26 @@ const IDE_TITLES = {
 
 const RUN_DATA = {
   laravel: [
-    { text: '$ php artisan serve', delay: 0, cls: 'run-cmd' },
-    { text: 'Starting Laravel development server: http://127.0.0.1:8000', delay: 500 },
-    { text: '', delay: 300 },
-    { text: '[200] GET /api/users .............. 43ms', delay: 700, cls: 'run-ok' },
-    { text: '{', delay: 200 },
-    { text: '  "data": [', delay: 80 },
-    { text: '    { "id": 1, "name": "Jan Novák", "email": "jan@example.com" },', delay: 80 },
-    { text: '    { "id": 2, "name": "Eva Černá", "email": "eva@example.com" }', delay: 80 },
-    { text: '  ],', delay: 80 },
-    { text: '  "per_page": 15,', delay: 80 },
-    { text: '  "total": 2', delay: 80 },
-    { text: '}', delay: 80 },
+    { text: '$ php artisan voucher:set-data --dry-run', delay: 0, cls: 'run-cmd' },
+    { text: '[DRY RUN] No changes will be saved.', delay: 400, cls: 'run-dim' },
+    { text: '', delay: 200 },
+    { text: 'Voucher ID: 1, claim_count: 5,  claim_max: 10, usage_count: 3', delay: 300 },
+    { text: 'Voucher ID: 2, claim_count: 0,  claim_max: 5,  usage_count: 0', delay: 120 },
+    { text: 'Voucher ID: 3, claim_count: 12, claim_max: 10, usage_count: 8', delay: 120 },
+    { text: 'Voucher ID: 4, claim_count: 2,  claim_max: 20, usage_count: 1', delay: 120 },
+    { text: '', delay: 200 },
+    { text: 'Done in 0.91s.', delay: 300, cls: 'run-dim' },
     { text: '', delay: 400 },
-    { text: '$ php artisan users:sync', delay: 500, cls: 'run-cmd' },
-    { text: 'Fetching users from external API...', delay: 600 },
-    { text: '  [SYNC] jan@example.com — updated', delay: 350 },
-    { text: '  [SYNC] eva@example.com — updated', delay: 350 },
-    { text: '  [NEW]  petr@example.com — created', delay: 350 },
-    { text: 'Synced 3 users.', delay: 400, cls: 'run-ok' },
+    { text: '$ php artisan voucher:set-data', delay: 300, cls: 'run-cmd' },
+    { text: '', delay: 200 },
+    { text: 'Voucher ID: 1, claim_count: 5,  claim_max: 10, usage_count: 3', delay: 300 },
+    { text: 'Voucher ID: 2, claim_count: 0,  claim_max: 5,  usage_count: 0', delay: 120 },
+    { text: 'Voucher ID: 3, claim_count: 12, claim_max: 10, usage_count: 8', delay: 120 },
+    { text: 'Voucher ID: 4, claim_count: 2,  claim_max: 20, usage_count: 1', delay: 120 },
+    { text: '', delay: 200 },
+    { text: 'Done in 0.88s.', delay: 300, cls: 'run-ok' },
     { text: '', delay: 300 },
-    { text: 'Process finished with exit code 0', delay: 400, cls: 'run-dim' },
+    { text: 'Process finished with exit code 0', delay: 300, cls: 'run-dim' },
   ],
   dotnet: [
     { text: '$ dotnet run', delay: 0, cls: 'run-cmd' },

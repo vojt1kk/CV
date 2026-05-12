@@ -1122,15 +1122,6 @@ img { max-width: 100%; display: block; }
   transform: scale(1);
 }
 
-/* IDE Mockup — restore default cursor */
-@media (hover: hover) and (pointer: fine) {
-  .video-overlay, .video-overlay * { cursor: auto !important; }
-  .video-overlay .ide__code { cursor: text !important; }
-  .video-overlay .ide__tab,
-  .video-overlay .ide__btn--close { cursor: pointer !important; }
-}
-
-.video-overlay.open ~ #custom-cursor,
 .video-overlay.open ~ #cursor-guide { display: none !important; }
 
 .ide {
